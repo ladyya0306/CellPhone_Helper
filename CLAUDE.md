@@ -13,10 +13,11 @@
 5. `minicpm-v4.7\docs\人设圣经-v2.md` —— 14 人声音 DNA / 动作库 / 小传 / 样例（改 Pack 前先看）
 6. `minicpm-v4.7\docs\内容银行与渐进解锁-2026-10-21.md` —— 6 个月内容银行、青梅竹马、渐进解锁、审核门禁
 7. `minicpm-v4.7\docs\语料库与风格源-2026-10-21.md` —— 东京电视台式旁白、语料来源/版权、CaptionBank
-8. `minicpm-v4.7\docs\群聊-PC拟真测试-2026-10-21.md` —— 群聊 PC 测试报告（机制通过、拟真未过）
-9. `minicpm-v4.7\docs\产品方案-v1.0.md` —— 产品定位、缺陷总表、路线（阶段 A–F）
-10. `minicpm-v4.7\docs\架构诊断与重构方案-2026-10-18.md` —— 根因、架构不变量、验收清单 §3.4
-11. `minicpm-v4.7\docs\APK工程方案.md` —— M1–M7 里程碑记录
+8. `minicpm-v4.7\docs\风格模式与语料扩展-2026-10-21.md` —— TVB/周星驰/韩寒/修仙四种 StyleMode
+9. `minicpm-v4.7\docs\群聊-PC拟真测试-2026-10-21.md` —— 群聊 PC 测试报告（机制通过、拟真未过）
+10. `minicpm-v4.7\docs\产品方案-v1.0.md` —— 产品定位、缺陷总表、路线（阶段 A–F）
+11. `minicpm-v4.7\docs\架构诊断与重构方案-2026-10-18.md` —— 根因、架构不变量、验收清单 §3.4
+12. `minicpm-v4.7\docs\APK工程方案.md` —— M1–M7 里程碑记录
 
 ## 构建 / 部署 / 测试
 - 环境：`. minicpm-v4.7\android\env-build.ps1`；另设 `$env:ANDROID_USER_HOME = "D:\MiniProj\CellPhone Helper\android-toolchain\android-user-home"`（沿用同一个 debug 密钥，`adb install -r` 才能覆盖安装）
