@@ -242,7 +242,7 @@ lib/arm64-v8a/libai-chat.so         0.7 MB   ← JNI 封装
 | 问题 | 原因 | 修复 |
 |---|---|---|
 | `native-platform.dll` 加载失败 | Gradle 默认写 `%USERPROFILE%\.gradle` 被拒 | `GRADLE_USER_HOME` 指向工作区 |
-| `debug.keystore.lock` AccessDenied | keystore 默认在 `C:\Users\wyl\.android\` | `ANDROID_USER_HOME` 指向工作区 |
+| `debug.keystore.lock` AccessDenied | keystore 默认在 `%USERPROFILE%\.android\` | `ANDROID_USER_HOME` 指向工作区 |
 | `INSTALL_FAILED_ABORTED: User rejected` | vivo 安装确认弹窗 | 关闭 `verifier_verify_adb_installs` 后重试 |
 | **`UnsatisfiedLinkError: libomp.so not found`** | llama.cpp 用 OpenMP 编译，运行时库未打包 | 从 NDK 复制 `libomp.so` 到 `jniLibs/arm64-v8a/` |
 | `input text` 传中文崩溃 | Android shell 不支持非 ASCII | 加 `AUTO_TEST_MESSAGE` 测试钩子 |
