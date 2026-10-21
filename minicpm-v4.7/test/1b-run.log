@@ -1,0 +1,27 @@
+0.02.498.501 I cmn          init: llama threadpool init, n_threads = 8
+0.05.425.924 I mtmd_cli_context: chat template example:
+<|im_start|>system
+You are a helpful assistant<|im_end|>
+<|im_start|>user
+Hello<|im_end|>
+<|im_start|>assistant
+<think>
+
+</think>
+
+Hi there<|im_end|>
+<|im_start|>user
+How are you?<|im_end|>
+<|im_start|>assistant
+<think>
+
+0.05.425.946 I main: loading model: D:\MiniProj\CellPhone Helper\minicpm-v4.7\models\MiniCPM-V-4_7-1B-Q4_K_M.gguf
+0.05.426.007 W WARN: This is an experimental CLI for testing multimodal capability.
+0.05.426.008 W       For normal use cases, please use the standard llama-cli
+0.05.482.451 I encoding mtmd batch, n_chunks = 1 (done = 1, total = 3)
+0.10.848.183 I mtmd batch encoding done in 5366 ms
+0.10.849.394 W find_slot: non-consecutive token position 14 after 6 for sequence 0 with 199 new tokens
+0.10.849.702 W find_slot: non-consecutive token position 14 after 6 for sequence 0 with 199 new tokens
+
+好的，让我仔细分析这张图。首先，我需要数一下文字的行数。让我列出每个部分：第一行是“MiniCPM-V4.7 TEST”，第二行是“ORDER X100PRO-2026”，第三行是“AMOUNT:8848 CNY”，第四行是“vivo X100 Pro / Dimensity9300”。等等，让我再确认一下。让我数一下：1. MiniCPM-V4.7 TEST，2. ORDER X100PRO-2026，3. AMOUNT:884
+

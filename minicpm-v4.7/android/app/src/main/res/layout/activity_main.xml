@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    android:background="@color/chat_bg"
+    android:id="@+id/root">
+
+    <!-- 顶栏：左边是会动的头像，标题是人设名字，副标题是她现在的状态 -->
+    <FrameLayout
+        android:id="@+id/top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:background="@color/white">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@null"
+            app:contentInsetStart="72dp"
+            app:titleTextColor="@color/chat_text" />
+
+        <com.example.llama.AvatarView
+            android:id="@+id/avatar"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_vertical|start"
+            android:layout_marginStart="14dp"
+            android:contentDescription="头像" />
+    </FrameLayout>
+
+    <!-- 模型加载状态条 -->
+    <TextView
+        android:id="@+id/gguf"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="6dp"
+        android:textSize="12sp"
+        android:textColor="@color/chat_text_dim"
+        android:background="@color/white"
+        android:text="正在加载模型…" />
+
+    <View
+        android:id="@+id/div_top"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/chat_divider" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/messages"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingVertical="10dp"
+        android:fadeScrollbars="false" />
+
+    <View
+        android:id="@+id/div_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/chat_divider" />
+
+    <LinearLayout
+        android:id="@+id/input_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/white"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp">
+
+        <EditText
+            android:id="@+id/user_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="说点什么…"
+            android:textColor="@color/chat_text"
+            android:textColorHint="@color/chat_text_dim"
+            android:textSize="15sp"
+            android:maxLines="4"
+            android:inputType="textMultiLine|textCapSentences"
+            android:background="@null"
+            android:enabled="false"
+            android:importantForAutofill="no" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="发送"
+            android:enabled="false"
+            app:fabSize="mini"
+            app:srcCompat="@drawable/outline_send_24" />
+    </LinearLayout>
+</LinearLayout>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>MiniCPM-V 4.7 · 手机本地助手</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --line:#e3e6ea; --text:#1f2328; --dim:#6b7280;
+    --brand:#2f6fed; --user:#2f6fed; --bot:#ffffff; --tool:#f2f5fb; --toolbd:#d7e0f0;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg);color:var(--text);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+    display:flex;flex-direction:column;height:100dvh;
+  }
+  header{
+    flex:0 0 auto;background:var(--card);border-bottom:1px solid var(--line);
+    padding:9px 12px;display:flex;align-items:center;gap:9px;position:sticky;top:0;z-index:5;
+  }
+  header h1{font-size:15px;margin:0;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header .sub{font-size:11px;color:var(--dim);font-weight:400}
+  .dot{width:9px;height:9px;border-radius:50%;background:#c9ced6;flex:0 0 auto}
+  .dot.ok{background:#22c55e}
+  .dot.busy{background:#f59e0b;animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.3}}
+  .seg{display:flex;background:#eef1f5;border-radius:9px;padding:2px;flex:0 0 auto}
+  .seg button{border:0;background:none;font:inherit;font-size:13px;padding:4px 11px;border-radius:7px;color:var(--dim)}
+  .seg button.on{background:#fff;color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(16,24,40,.08)}
+  #chat{flex:1 1 auto;overflow-y:auto;padding:14px 12px 4px;display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:90%;padding:10px 13px;border-radius:14px;white-space:pre-wrap;word-break:break-word;box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .msg.user{align-self:flex-end;background:var(--user);color:#fff;border-bottom-right-radius:5px}
+  .msg.bot{align-self:flex-start;background:var(--bot);border:1px solid var(--line);border-bottom-left-radius:5px}
+  .msg img{max-width:100%;border-radius:9px;margin-bottom:7px;display:block}
+  .meta{font-size:11px;color:var(--dim);margin-top:6px}
+  .msg.user .meta{color:#dbe7ff}
+  .trace{align-self:flex-start;max-width:90%;background:var(--tool);border:1px solid var(--toolbd);
+         border-radius:10px;padding:7px 10px;font:12px/1.65 ui-monospace,Menlo,Consolas,monospace;
+         color:#40506b;white-space:pre-wrap;word-break:break-all}
+  .trace b{color:#1e3a8a}
+  .hint{color:var(--dim);font-size:13px;margin:20px 10px;line-height:1.95}
+  .hint b{color:var(--text)}
+  .hint code{background:#eceff4;border-radius:4px;padding:1px 5px;font-size:12px}
+  footer{
+    flex:0 0 auto;background:var(--card);border-top:1px solid var(--line);
+    padding:9px 10px calc(9px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;
+  }
+  #preview{display:none;align-items:center;gap:9px;background:#eef2f8;border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+  #preview img{width:44px;height:44px;object-fit:cover;border-radius:7px}
+  #preview span{flex:1;font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #preview button{background:none;border:0;color:var(--dim);font-size:19px;line-height:1;padding:3px 5px}
+  .row{display:flex;gap:8px;align-items:flex-end}
+  textarea{
+    flex:1;resize:none;border:1px solid var(--line);border-radius:11px;padding:9px 12px;
+    font:inherit;max-height:120px;min-height:42px;background:#fff;color:var(--text);outline:none;
+  }
+  textarea:focus{border-color:var(--brand)}
+  button.icon{
+    flex:0 0 auto;width:42px;height:42px;border-radius:11px;border:1px solid var(--line);
+    background:#fff;font-size:19px;display:flex;align-items:center;justify-content:center;
+  }
+  button.send{
+    flex:0 0 auto;height:42px;padding:0 18px;border-radius:11px;border:0;background:var(--brand);
+    color:#fff;font-size:15px;font-weight:600;
+  }
+  button:disabled{opacity:.45}
+  .err{color:#b91c1c;font-size:13px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin:2px 12px 0}
+  .chips button{font-size:12px;padding:5px 10px;border-radius:20px;border:1px solid var(--line);background:#fff;color:#374151}
+  .agentbar{display:none;align-items:center;gap:8px;background:#eef4ff;border-bottom:1px solid #d7e0f0;
+            padding:7px 12px;font-size:12px;color:#40506b;flex-wrap:wrap}
+  .agentbar.show{display:flex}
+  .agentbar > span{font-size:12px;color:#40506b}
+  .agentbar .seg button{font-size:12px;padding:3px 9px}
+  .agentbar input{flex:1;min-width:110px;border:1px solid #cfd9ec;border-radius:7px;padding:5px 9px;
+                  font:inherit;font-size:12px;outline:none;background:#fff}
+  .agentbar button.save{font-size:12px;padding:5px 11px;border-radius:7px;border:0;background:var(--brand);color:#fff}
+  .agentbar .state{font-size:11px;color:#6b7280;width:100%}
+</style>
+</head>
+<body>
+<header>
+  <div class="dot" id="dot"></div>
+  <h1>MiniCPM-V 4.7 <span class="sub" id="model">1B · 本地</span></h1>
+  <div class="seg">
+    <button id="mChat" class="on">💬 对话</button>
+    <button id="mAgent">🧑💼 助手</button>
+  </div>
+  <button class="icon" id="clear" title="清空">🗑</button>
+</header>
+
+<div class="agentbar" id="agentbar">
+  <span>模型后端</span>
+  <div class="seg">
+    <button id="bLocal" class="on">离线 · 本机</button>
+    <button id="bOnline">在线 · 云端</button>
+  </div>
+  <input id="apiKey" type="password" placeholder="填 DeepSeek API Key">
+  <button class="save" id="saveKey">保存</button>
+  <span class="state" id="keyState"></span>
+</div>
+
+<div id="chat">
+  <div class="hint">
+    <b>完全离线</b>，模型跑在这台手机上。<br><br>
+    <b>💬 对话</b>：直接聊天、传图识图（图片约需 1～3 分钟）。<br>
+    <b>🧑💼 助手</b>：用说话的方式操作手机 ——<br>
+    <code>帮我加一条待办：周五下午三点开组会</code><br>
+    <code>明天早上 7 点叫我起床</code><br>
+    <code>导航到北京南站</code><br>
+    <code>看看 Download 目录里有什么文件</code><br>
+    <code>帮我制定一份下周的学习计划并保存</code>
+  </div>
+</div>
+
+<footer>
+  <div id="preview">
+    <img id="pvImg" alt="">
+    <span id="pvName"></span>
+    <button id="pvDel">✕</button>
+  </div>
+  <div class="row">
+    <button class="icon" id="pick" title="选择图片">📷</button>
+    <textarea id="input" rows="1" placeholder="说点什么…"></textarea>
+    <button class="send" id="send">发送</button>
+  </div>
+  <input type="file" id="file" accept="image/*" style="display:none">
+</footer>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const chat = $('chat'), input = $('input'), send = $('send'), dot = $('dot');
+  const AGENT_URL = 'http://127.0.0.1:8081';
+  let imageDataUrl = null, imageName = '', busy = false, history = [], mode = 'chat', backend = 'local';
+
+  // ---- 后端切换（离线本机 / 在线云端）----
+  function applyBackend() {
+    $('bLocal').className = backend === 'local' ? 'on' : '';
+    $('bOnline').className = backend === 'deepseek' ? 'on' : '';
+    $('keyState').textContent = backend === 'local'
+      ? '离线模式：全部在本机模型上运行，不联网、不花钱；识别图片较慢（1～3 分钟）。'
+      : '在线模式：走 DeepSeek 云端 API，更快更准；需要 API Key，会产生费用，图片会上传到云端。';
+  }
+  async function loadConfig() {
+    try {
+      const r = await fetch(AGENT_URL + '/config', { cache: 'no-store' });
+      const j = await r.json();
+      backend = j.backend || 'local';
+      $('apiKey').placeholder = j.deepseek_api_key
+        ? ('已保存 ' + j.deepseek_api_key + '（留空则不改）')
+        : '填 DeepSeek API Key';
+    } catch (e) { /* 助手没起来，保持默认 */ }
+    applyBackend();
+  }
+  async function setBackend(b) {
+    backend = b; applyBackend();
+    try {
+      await fetch(AGENT_URL + '/config', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backend: b })
+      });
+    } catch (e) { /* 忽略 */ }
+  }
+  $('bLocal').onclick = () => setBackend('local');
+  $('bOnline').onclick = () => setBackend('deepseek');
+  $('saveKey').onclick = async () => {
+    const k = $('apiKey').value.trim();
+    if (!k) { alert('请先填入 API Key'); return; }
+    try {
+      const r = await fetch(AGENT_URL + '/config', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deepseek_api_key: k })
+      });
+      const j = await r.json();
+      alert(j.has_key ? 'API Key 已保存（存在手机本地，权限 600）' : '保存失败');
+      $('apiKey').value = '';
+      loadConfig();
+    } catch (e) { alert('保存失败：' + e.message); }
+  };
+
+  function setMode(m) {
+    mode = m;
+    $('mChat').className = m === 'chat' ? 'on' : '';
+    $('mAgent').className = m === 'agent' ? 'on' : '';
+    $('agentbar').className = m === 'agent' ? 'agentbar show' : 'agentbar';
+    if (m === 'agent') loadConfig();
+    $('model').textContent = m === 'chat' ? '1B · 本地' : '办公助手';
+    input.placeholder = m === 'chat' ? '说点什么…' : '让我做什么？（设闹钟 / 加待办 / 导航 / 看文件 / 做计划）';
+  }
+  $('mChat').onclick = () => setMode('chat');
+  $('mAgent').onclick = () => setMode('agent');
+
+  // ---- 健康检查（对话用的模型服务）----
+  async function poll() {
+    try {
+      const r = await fetch('/health', { cache: 'no-store' });
+      const j = await r.json();
+      dot.className = 'dot' + (j.status === 'ok' ? ' ok' : '');
+    } catch (e) { dot.className = 'dot'; }
+  }
+  poll(); setInterval(poll, 5000);
+
+  // ---- 图片 ----
+  $('pick').onclick = () => $('file').click();
+  $('file').onchange = (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      imageDataUrl = rd.result; imageName = f.name;
+      $('pvImg').src = rd.result; $('pvName').textContent = f.name;
+      $('preview').style.display = 'flex';
+    };
+    rd.readAsDataURL(f);
+  };
+  $('pvDel').onclick = () => {
+    imageDataUrl = null; imageName = ''; $('file').value = '';
+    $('preview').style.display = 'none';
+  };
+
+  function esc(s) { return String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+  function bubble(role, html) {
+    const d = document.createElement('div');
+    d.className = 'msg ' + role; d.innerHTML = html;
+    chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+    return d;
+  }
+  function traceBox(html) {
+    const d = document.createElement('div');
+    d.className = 'trace'; d.innerHTML = html;
+    chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+    return d;
+  }
+
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !/Mobi|Android/i.test(navigator.userAgent)) {
+      e.preventDefault(); go();
+    }
+  });
+  send.onclick = go;
+
+  async function go() {
+    if (busy) return;
+    const text = input.value.trim();
+    if (mode === 'agent') { if (!text && !imageDataUrl) return; return runAgent(text); }
+    if (!text && !imageDataUrl) return;
+    return runChat(text);
+  }
+
+  // ================= 助手模式 =================
+  async function runAgent(text) {
+    busy = true; send.disabled = true; dot.className = 'dot busy';
+    const img = imageDataUrl;
+    bubble('user', (img ? '<img src="' + img + '">' : '') + esc(text || '(仅图片)'));
+    input.value = ''; input.style.height = 'auto';
+    imageDataUrl = null; $('file').value = ''; $('preview').style.display = 'none';
+    const wait = backend === 'local'
+      ? '思考中…（本机模型，简单任务约 20～30 秒）'
+      : '思考中…（云端 API，通常几秒到十几秒）';
+    const out = bubble('bot', '<span style="color:#6b7280">' + wait + '</span>');
+    const t0 = Date.now();
+    try {
+      const r = await fetch(AGENT_URL + '/ask', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text, image: img || null })
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 200));
+      const j = await r.json();
+      out.remove();
+      const tr = j.trace || [];
+      if (tr.length) {
+        let h = '';
+        tr.forEach((t, i) => {
+          const args = JSON.stringify(t.args || {});
+          const first = String(t.result || '').trim().split('\n')[0].slice(0, 120);
+          h += '<b>' + (i + 1) + '. ' + esc(t.tool) + '</b> ' + esc(args) + '\n   → ' + esc(first) + '\n';
+        });
+        traceBox(h);
+      } else {
+        traceBox('<b>未调用任何工具</b>\n   （这回它没有真正执行操作，只是回答了话）');
+      }
+      bubble('bot', esc(j.answer || '(没有返回内容)') +
+        '<div class="meta">' + (j.backend === 'deepseek' ? '云端' : '本机') + ' · 用时 ' +
+        (j.elapsed || ((Date.now() - t0) / 1000).toFixed(1)) + ' 秒 · 调用工具 ' + tr.length + ' 次</div>');
+    } catch (e) {
+      out.innerHTML = '<span class="err">出错：' + esc(e.message || e) +
+        '<br>（办公助手没在运行？在 Termux 里执行过 <code>bash ~/termux-setup.sh serve</code> 后，助手会在打开 Termux 时自动启动）</span>';
+    } finally {
+      busy = false; send.disabled = false; dot.className = 'dot ok';
+      chat.scrollTop = chat.scrollHeight;
+    }
+  }
+
+  // ================= 对话模式 =================
+  async function runChat(text) {
+    busy = true; send.disabled = true; dot.className = 'dot busy';
+    const shown = (imageDataUrl ? '<img src="' + imageDataUrl + '">' : '') + esc(text || '(仅图片)');
+    bubble('user', shown);
+    input.value = ''; input.style.height = 'auto';
+
+    const parts = [];
+    if (text) parts.push({ type: 'text', text: text });
+    if (imageDataUrl) parts.push({ type: 'image_url', image_url: { url: imageDataUrl } });
+    const content = (parts.length === 1 && parts[0].type === 'text') ? text : parts;
+    const sentImage = !!imageDataUrl;
+    history.push({ role: 'user', content: content });
+    imageDataUrl = null; $('file').value = ''; $('preview').style.display = 'none';
+
+    const out = bubble('bot', '<span style="color:#6b7280">思考中…（首次加载模型或识别图片可能要 1～3 分钟）</span>');
+    const t0 = Date.now();
+    let acc = '', stats = null;
+    try {
+      const resp = await fetch('/v1/chat/completions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: history, max_tokens: 512,
+          temperature: 0.7, top_p: 0.95, top_k: 100, repeat_penalty: 1.03, stream: true
+        })
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ' + (await resp.text()).slice(0, 200));
+      const reader = resp.body.getReader(), dec = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop();
+        for (const line of lines) {
+          const s = line.trim();
+          if (!s.startsWith('data:')) continue;
+          const payload = s.slice(5).trim();
+          if (payload === '[DONE]') continue;
+          let j; try { j = JSON.parse(payload); } catch (e) { continue; }
+          const delta = j.choices && j.choices[0] && j.choices[0].delta;
+          if (delta && delta.content) {
+            acc += delta.content; out.innerHTML = esc(acc);
+            chat.scrollTop = chat.scrollHeight;
+          }
+          if (j.timings) stats = j.timings;
+        }
+      }
+      if (!acc) acc = '(没有返回内容)';
+      out.innerHTML = esc(acc);
+      let m = '用时 ' + ((Date.now() - t0) / 1000).toFixed(1) + ' 秒';
+      if (stats && stats.predicted_per_second) m += ' · 生成 ' + stats.predicted_per_second.toFixed(1) + ' t/s';
+      out.insertAdjacentHTML('beforeend', '<div class="meta">' + m + (sentImage ? ' · 含图片' : '') + '</div>');
+      history.push({ role: 'assistant', content: acc });
+    } catch (e) {
+      out.innerHTML = '<span class="err">出错：' + esc(e.message || e) + '</span>';
+    } finally {
+      busy = false; send.disabled = false; dot.className = 'dot ok';
+      chat.scrollTop = chat.scrollHeight;
+    }
+  }
+
+  $('clear').onclick = () => {
+    if (busy) return;
+    history = []; chat.innerHTML = '';
+    bubble('bot', '对话已清空。模型仍驻留在内存中，可以继续提问。');
+  };
+  setMode('chat');
+})();
+</script>
+</body>
+</html>

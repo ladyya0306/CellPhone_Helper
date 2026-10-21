@@ -1,0 +1,29 @@
+# ---- 工具链 / 模型 / 参考资料（体积大，不入库） ----
+android-toolchain/
+llm/
+refs/
+minicpm-v4.7/models/
+minicpm-v4.7/apk/
+minicpm-v4.7/tools/
+minicpm-v4.7/llamacpp-cpu/
+minicpm-v4.7/llamacpp-vulkan/
+
+# ---- 运行产物与备份（可再生成；证据留在磁盘上） ----
+minicpm-v4.7/run/
+minicpm-v4.7/_backup/
+
+# ---- 构建产物 ----
+**/build/
+**/.gradle/
+**/.cxx/
+**/.kotlin/
+.gradle/
+local.properties
+.idea/
+*.iml
+
+# ---- 二进制与缓存 ----
+*.apk
+*.gguf
+*.pyc
+__pycache__/
