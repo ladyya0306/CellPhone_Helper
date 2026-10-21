@@ -1,7 +1,7 @@
 package com.example.llama
 
 /**
- * 人设数据 —— 从 Python 版 persona.py 移植（8 个，病娇按决定未收录）。
+ * 人设数据 —— 从 Python 版 persona.py 移植（现 11 个；病娇按决定未收录）。
  *
  * 核心原则（实测得出）：扮演 != 否认身份。
  * fallback 一律"诚实承认是 AI + 保持人设语气"，绝不改成"我就是真人"。
