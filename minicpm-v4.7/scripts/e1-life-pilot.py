@@ -82,6 +82,9 @@ HOOKS = [
     "晚上有星星", "咖啡机坏了", "想试试新口味", "今天走了很多路",
     "店长夸她细心",
 ]
+# 180 天时给事件/钩子/运动/做事加一个“场景后缀”，避免 30 天原样循环。
+# 30 天试点不加后缀，保持原有报告口径。
+CONTEXTS = ["早上", "下午", "晚上", "雨天", "周末", "这天"]
 
 
 def build_cards(days: int, seed: int) -> list[dict]:
@@ -106,6 +109,13 @@ def build_cards(days: int, seed: int) -> list[dict]:
         exercise = EXERCISE[i % len(EXERCISE)]
         work = WORK[i % len(WORK)]
         hook = HOOKS[(i * 7 + 3) % len(HOOKS)]
+        if days > 30:
+            ctx = CONTEXTS[(i // 30) % len(CONTEXTS)]
+            # 用自然前缀拉开 180 天，不加括号，避免模型把“（早上）”念出来。
+            event = f"{ctx}，{event}"
+            exercise = f"{ctx}做了{exercise}"
+            work = f"{ctx}在猫咖{work}"
+            hook = f"{ctx}，{hook}"
         card = {
             "day": i + 1,
             "weekday": WEEKDAYS[i % 7],
@@ -172,14 +182,14 @@ def main() -> None:
     result = audit(cards)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "xiaomi-life-30d.json").write_text(
+    (out / f"xiaomi-life-{args.days}d.json").write_text(
         json.dumps({"persona": PERSONA, "seed": args.seed, "cards": cards, "audit": result},
                    ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
 
     lines = [
-        "# 小咪 30 天 LifeCard（E1 试点）",
+        f"# 小咪 {args.days} 天 LifeCard（E1 试点）",
         "",
         f"- seed：{args.seed}；天数：{len(cards)}",
         f"- 整卡重复：{result['whole_card_duplicates']}；三餐组合重复：{result['meal_tuple_duplicates']}",
@@ -195,8 +205,8 @@ def main() -> None:
             f"| {c['day']} | {c['weather']} | {c['breakfast']} / {c['lunch']} / {c['dinner']} | "
             f"{c['exercise']} | {c['work']} | {c['small_event']} | {c['hook']} |"
         )
-    lines += ["", "> 完整 30 天见 `run/e1/xiaomi-life-30d.json`。"]
-    (out / "xiaomi-life-30d.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    lines += ["", f"> 完整 {args.days} 天见 `run/e1/xiaomi-life-{args.days}d.json`。"]
+    (out / f"xiaomi-life-{args.days}d.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

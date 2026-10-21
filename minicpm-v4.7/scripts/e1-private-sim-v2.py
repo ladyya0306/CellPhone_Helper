@@ -43,6 +43,8 @@ USER_FACT = re.compile(
     r"(你|您)(藏|买了|买过|说过|今天去|今天在|今天吃|做了|去了)|"
     r"(主人|你|您).{0,4}(藏起来|买了|买过|说过)"
 )
+FORMULA_END = re.compile(r"(主人|你).{0,10}(要不要|想不想|好不好|行不行)[^。！？!?~～]{0,8}[。！？!?~～]*$")
+FORMULA_START = re.compile(r"^(小咪今天|今天小咪)")
 
 
 def read_persona_prompt(persona_id: str) -> str:
@@ -75,24 +77,27 @@ def focus_for(user: str, card: dict) -> tuple[str, str]:
     if "吃" in user or "饭" in user:
         return "meal", f"今天晚饭是{card['dinner']}"
     if "累" in user:
-        return "energy", f"今天做了{card['exercise']}，{card['energy']}"
+        return "energy", f"今天{card['exercise']}，{card['energy']}"
     if "运动" in user:
-        return "exercise", f"今天做了{card['exercise']}"
+        return "exercise", f"今天{card['exercise']}"
     if "猫咖" in user or "忙" in user:
         work = card["work"]
-        fact = f"今天{work}" if work.startswith("猫咖") else f"今天在猫咖{work}"
+        fact = f"今天{work}" if ("在猫咖" in work or work.startswith("猫咖")) else f"今天在猫咖{work}"
         return "work", fact
     if "新鲜" in user or "趣事" in user or "什么" in user:
         event = card["small_event"].replace("她", "我").replace("小咪", "我")
         return "event", f"今天{event}"
     work = card["work"]
-    fact = f"今天{work}" if work.startswith("猫咖") else f"今天在猫咖{work}"
+    fact = f"今天{work}" if ("在猫咖" in work or work.startswith("猫咖")) else f"今天在猫咖{work}"
     return "work", fact
 
 
-def build_system(base: str, card: dict, focus: str, allow_meow: bool, allow_nuzzle: bool) -> str:
+def build_system(base: str, card: dict, focus: str, allow_meow: bool, allow_nuzzle: bool,
+                 allow_formula_end: bool, allow_formula_start: bool) -> str:
     tic = "本条最多 1 个“喵”" if allow_meow else "本条不要出现“喵”"
     act = "最多 1 个动作注释" if allow_nuzzle else "本条不要动作注释"
+    end = "" if allow_formula_end else "本条不要用“主人要不要/想不想”收尾。"
+    start = "" if allow_formula_start else "本条不要用“小咪今天/今天小咪”开头。"
     return base + (
         "\n\n【生活卡覆盖】上面“不要编造自己做过的事/只说你在这儿陪着用户”的规则，"
         "不适用于下面这张由程序提供的今日生活卡。只允许把卡里的内容当成今天真实发生的事；卡外不要编。\n"
@@ -103,17 +108,20 @@ def build_system(base: str, card: dict, focus: str, allow_meow: bool, allow_nuzz
         "4. 一次 1–3 句、不超过 80 字；" + tic + "；" + act + "。\n"
         "5. 自称“小咪”或“我”，不要用“她”指自己。\n"
         "6. 本条如果不带“喵”，就用“小咪/耳朵/尾巴”其中一个，让口吻还在。\n"
+        + end + start + "\n"
         f"【本轮唯一细节】{focus}\n"
         "【今日生活卡（只作背景，不要逐项念）】" + life_text(card)
     )
 
 
-def chat(base: str, card: dict, user: str, temperature: float, allow_meow: bool, allow_nuzzle: bool) -> str:
+def chat(base: str, card: dict, user: str, temperature: float, allow_meow: bool, allow_nuzzle: bool,
+         allow_formula_end: bool, allow_formula_start: bool) -> str:
     focus = focus_for(user, card)[1]
     payload = {
         "model": "q35_4b",
         "messages": [
-            {"role": "system", "content": build_system(base, card, focus, allow_meow, allow_nuzzle)},
+            {"role": "system", "content": build_system(base, card, focus, allow_meow, allow_nuzzle,
+                                                       allow_formula_end, allow_formula_start)},
             {"role": "user", "content": user},
         ],
         "temperature": temperature,
@@ -140,7 +148,8 @@ def card_facts(card: dict) -> list[str]:
     ]
 
 
-def assess(reply: str, card: dict, focus: str, allow_meow: bool, allow_nuzzle: bool) -> dict:
+def assess(reply: str, card: dict, focus: str, allow_meow: bool, allow_nuzzle: bool,
+           allow_formula_end: bool, allow_formula_start: bool, recent: set[str]) -> dict:
     facts = card_facts(card)
     focus_hit = focus in reply
     any_card = any(f in reply for f in facts)
@@ -150,6 +159,9 @@ def assess(reply: str, card: dict, focus: str, allow_meow: bool, allow_nuzzle: b
     nuzzle = reply.count("蹭蹭")
     length = len(reply)
     third_person = "她" in reply
+    formula_end = bool(FORMULA_END.search(reply))
+    formula_start = bool(FORMULA_START.search(reply))
+    duplicate = re.sub(r"\s+", "", reply) in recent
     score = 0
     if focus_hit:
         score += 5
@@ -162,6 +174,9 @@ def assess(reply: str, card: dict, focus: str, allow_meow: bool, allow_nuzzle: b
     score -= 6 if third_person else 0
     score -= 6 if meow > (1 if allow_meow else 0) else 0
     score -= 6 if nuzzle > (1 if allow_nuzzle else 0) else 0
+    score -= 5 if formula_end and not allow_formula_end else 0
+    score -= 5 if formula_start and not allow_formula_start else 0
+    score -= 10 if duplicate else 0
     score -= 2 if length > 80 else 0
     score += 1 if length <= 60 else 0
     valid = bool(
@@ -172,6 +187,9 @@ def assess(reply: str, card: dict, focus: str, allow_meow: bool, allow_nuzzle: b
         and length <= 80
         and meow <= (1 if allow_meow else 0)
         and nuzzle <= (1 if allow_nuzzle else 0)
+        and (allow_formula_end or not formula_end)
+        and (allow_formula_start or not formula_start)
+        and not duplicate
     )
     return {
         "score": score,
@@ -184,21 +202,67 @@ def assess(reply: str, card: dict, focus: str, allow_meow: bool, allow_nuzzle: b
         "meow": meow,
         "nuzzle": nuzzle,
         "length": length,
+        "formula_end": formula_end,
+        "formula_start": formula_start,
+        "duplicate": duplicate,
     }
 
 
 def safe_fallback(focus: str, allow_meow: bool, allow_nuzzle: bool) -> str:
-    # 只在候选都不合格时用；保留一个动作/一个喵的预算，不编卡外。
+    # 只在硬事实不合格时用；保留一个动作/一个喵的预算，不编卡外。
     act = "（耳朵抖了一下）" if allow_nuzzle else ""
     tic = "喵。" if allow_meow else "。"
     return f"{act}{focus}{tic}"
 
 
+def repair(reply: str, allow_meow: bool, allow_nuzzle: bool,
+           allow_formula_end: bool, allow_formula_start: bool,
+           focus: str, card: dict) -> str:
+    """把“只犯风格错/漏了生活卡”的候选救回来，避免大量模板兜底。"""
+    if not allow_formula_end:
+        reply = FORMULA_END.sub("", reply).strip()
+    if not allow_formula_start:
+        reply = re.sub(r"^(小咪今天|今天小咪)", "今天", reply)
+    # 第三人称“她”指自己：优先改成“我”，不要直接判死。
+    reply = reply.replace("她", "我")
+    if not allow_meow:
+        reply = reply.replace("喵", "")
+    elif reply.count("喵") > 1:
+        first = reply.find("喵")
+        reply = reply[: first + 1] + reply[first + 1:].replace("喵", "")
+    if not allow_nuzzle:
+        reply = re.sub(r"（[^）]*蹭蹭[^）]*）", "", reply).replace("蹭蹭", "")
+    elif reply.count("蹭蹭") > 1:
+        seen = 0
+        def keep_first(m):
+            nonlocal seen
+            seen += 1
+            return m.group(0) if seen == 1 else ""
+        reply = re.sub(r"（[^）]*蹭蹭[^）]*）", keep_first, reply)
+    reply = re.sub(r"[，,、\s]+([。！？!?~～])", r"\1", reply)
+    reply = re.sub(r"([。！？!?~～])\1+", r"\1", reply).strip()
+
+    # 模型只说了情绪/陪伴、没带生活卡：由程序补上焦点事实，不整句换模板。
+    # 若回复已用近义说法提到焦点，不再追加，避免“今天在猫咖…今天在猫咖…”重复。
+    core = focus.replace("今天", "").replace("早上", "").replace("下午", "").replace("晚上", "").replace("周末", "")
+    grams = {core[i:i + 2] for i in range(max(0, len(core) - 1))}
+    already = any(g in reply for g in grams if len(g) == 2)
+    if not any(f in reply for f in card_facts(card)) and not already:
+        if not reply:
+            reply = focus + ("喵。" if allow_meow else "。")
+        else:
+            candidate = reply.rstrip("。！？!?~～") + "。" + focus + ("喵。" if allow_meow else "。")
+            if len(candidate) <= 80:
+                reply = candidate
+    return reply
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=30)
+    ap.add_argument("--candidates", type=int, default=2)
     ap.add_argument("--cards", default=str(DEFAULT_CARDS))
-    ap.add_argument("--out", default="private-sim-v5-q35_4b")
+    ap.add_argument("--out", default="private-sim-v6-q35_4b")
     args = ap.parse_args()
 
     data = json.loads(Path(args.cards).read_text(encoding="utf-8"))
@@ -207,27 +271,64 @@ def main() -> None:
 
     rows = []
     fallbacks = 0
+    repaired_total = 0
+    seen = set()
     for idx, card in enumerate(cards):
         user = USER_TURNS[idx % len(USER_TURNS)]
         focus_type, focus = focus_for(user, card)
         allow_meow = idx % 2 == 0
-        allow_nuzzle = idx % 3 == 0
-        candidates = [chat(base, card, user, 0.7, allow_meow, allow_nuzzle) for _ in range(2)]
-        assessed = [(c, assess(c, card, focus, allow_meow, allow_nuzzle)) for c in candidates]
+        allow_nuzzle = idx % 4 == 0
+        allow_formula_end = idx % 5 == 0
+        allow_formula_start = idx % 6 == 0
+        candidates = [chat(base, card, user, 0.7, allow_meow, allow_nuzzle,
+                           allow_formula_end, allow_formula_start) for _ in range(max(1, args.candidates))]
+        assessed = [(c, assess(c, card, focus, allow_meow, allow_nuzzle,
+                               allow_formula_end, allow_formula_start, seen)) for c in candidates]
         best, best_a = max(assessed, key=lambda x: x[1]["score"])
+        repaired = 0
         if not best_a["valid"]:
-            extra = chat(base, card, user, 0.4, allow_meow, allow_nuzzle)
-            extra_a = assess(extra, card, focus, allow_meow, allow_nuzzle)
-            if extra_a["score"] > best_a["score"]:
+            hard = (
+                best_a["banned"] or best_a["user_fact"]
+                or best_a["length"] > 80
+            )
+            if not hard:
+                fixed = repair(best, allow_meow, allow_nuzzle, allow_formula_end, allow_formula_start, focus, card)
+                fixed_a = assess(fixed, card, focus, allow_meow, allow_nuzzle,
+                                 allow_formula_end, allow_formula_start, seen)
+                if fixed_a["valid"] or fixed_a["score"] > best_a["score"]:
+                    best, best_a = fixed, fixed_a
+                    repaired = 1
+        if not best_a["valid"]:
+            extra = chat(base, card, user, 0.4, allow_meow, allow_nuzzle,
+                         allow_formula_end, allow_formula_start)
+            extra_a = assess(extra, card, focus, allow_meow, allow_nuzzle,
+                             allow_formula_end, allow_formula_start, seen)
+            if extra_a["valid"] or extra_a["score"] > best_a["score"]:
                 best, best_a = extra, extra_a
+                if not best_a["valid"]:
+                    hard = (
+                        best_a["banned"] or best_a["user_fact"]
+                        or best_a["length"] > 80
+                    )
+                    if not hard:
+                        fixed = repair(best, allow_meow, allow_nuzzle, allow_formula_end, allow_formula_start, focus, card)
+                        fixed_a = assess(fixed, card, focus, allow_meow, allow_nuzzle,
+                                         allow_formula_end, allow_formula_start, seen)
+                        if fixed_a["valid"] or fixed_a["score"] > best_a["score"]:
+                            best, best_a = fixed, fixed_a
+                            repaired = 1
         if not best_a["valid"]:
             best = safe_fallback(focus, allow_meow, allow_nuzzle)
-            best_a = assess(best, card, focus, allow_meow, allow_nuzzle)
+            best_a = assess(best, card, focus, allow_meow, allow_nuzzle,
+                            allow_formula_end, allow_formula_start, seen)
             fallbacks += 1
+        seen.add(re.sub(r"\s+", "", best))
+        repaired_total += repaired
         rows.append({
             "day": card["day"], "user": user, "focus_type": focus_type,
             "focus": focus, "reply": best, "assess": best_a,
             "allow_meow": allow_meow, "allow_nuzzle": allow_nuzzle,
+            "allow_formula_end": allow_formula_end, "allow_formula_start": allow_formula_start,
         })
         print(f"[{card['day']:02d}] {user}\n     {best}  {best_a}")
 
@@ -245,10 +346,15 @@ def main() -> None:
         "banned_hits": sum(1 for r in rows if r["assess"]["banned"]),
         "possible_user_fact_invention": sum(1 for r in rows if r["assess"]["user_fact"]),
         "fallbacks": fallbacks,
+        "repaired": repaired_total,
         "meow_count": sum(r["reply"].count("喵") for r in rows),
         "nuzzle_count": sum(r["reply"].count("蹭蹭") for r in rows),
         "max_meow_in_one": max(r["reply"].count("喵") for r in rows),
         "max_nuzzle_in_one": max(r["reply"].count("蹭蹭") for r in rows),
+        "formula_end_count": sum(1 for r in rows if r["assess"]["formula_end"]),
+        "formula_start_count": sum(1 for r in rows if r["assess"]["formula_start"]),
+        "duplicate_replies": sum(1 for r in rows if r["assess"]["duplicate"]),
+        "distinct_starts": len({r["reply"][:4] for r in rows}),
         "avg_chars": round(sum(len(r["reply"]) for r in rows) / max(1, len(rows)), 1),
         "rows": rows,
     }
@@ -261,8 +367,10 @@ def main() -> None:
         "",
         f"- 天数：{len(rows)}；精确重复：{exact_dup}；>80 字：{result['over_80_chars']}",
         f"- 焦点命中：{result['focus_hits']}/{len(rows)}；卡内落地：{result['grounded_in_lifecard']}/{len(rows)}",
-        f"- 卡外命中：{result['banned_hits']}；替用户编事实：{result['possible_user_fact_invention']}；兜底：{fallbacks}",
+        f"- 卡外命中：{result['banned_hits']}；替用户编事实：{result['possible_user_fact_invention']}；兜底：{fallbacks}；句式修复：{result['repaired']}",
         f"- 喵：{result['meow_count']}；蹭蹭：{result['nuzzle_count']}；单条最多喵：{result['max_meow_in_one']}；最多蹭蹭：{result['max_nuzzle_in_one']}",
+        f"- 公式化收尾：{result['formula_end_count']}；公式化开头：{result['formula_start_count']}；开头前 4 字种类：{result['distinct_starts']}",
+        f"- 重复命中（生成时）：{result['duplicate_replies']}",
         f"- 平均字数：{result['avg_chars']}",
         "",
     ]
