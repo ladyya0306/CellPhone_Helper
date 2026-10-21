@@ -14,6 +14,7 @@ import argparse
 import json
 import re
 import urllib.request
+from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -219,6 +220,11 @@ def repair(reply: str, allow_meow: bool, allow_nuzzle: bool,
            allow_formula_end: bool, allow_formula_start: bool,
            focus: str, card: dict) -> str:
     """把“只犯风格错/漏了生活卡”的候选救回来，避免大量模板兜底。"""
+    if len(reply) > 80:
+        # 先按句号截到 80 字内，避免长回复直接被判死。
+        cut = max(reply.rfind("。", 0, 80), reply.rfind("！", 0, 80),
+                  reply.rfind("？", 0, 80), reply.rfind("~", 0, 80))
+        reply = reply[: cut + 1] if cut >= 30 else reply[:80].rstrip("，,、 ") + "。"
     if not allow_formula_end:
         reply = FORMULA_END.sub("", reply).strip()
     if not allow_formula_start:
@@ -272,6 +278,7 @@ def main() -> None:
     rows = []
     fallbacks = 0
     repaired_total = 0
+    rejections = Counter()
     seen = set()
     for idx, card in enumerate(cards):
         user = USER_TURNS[idx % len(USER_TURNS)]
@@ -284,13 +291,18 @@ def main() -> None:
                            allow_formula_end, allow_formula_start) for _ in range(max(1, args.candidates))]
         assessed = [(c, assess(c, card, focus, allow_meow, allow_nuzzle,
                                allow_formula_end, allow_formula_start, seen)) for c in candidates]
+        for _, ca in assessed:
+            if not ca["valid"]:
+                for key in ("banned", "user_fact", "third_person", "length",
+                            "formula_end", "formula_start", "duplicate"):
+                    if ca.get(key):
+                        rejections[key] += 1
+                if not ca["any_card"]:
+                    rejections["no_card"] += 1
         best, best_a = max(assessed, key=lambda x: x[1]["score"])
         repaired = 0
         if not best_a["valid"]:
-            hard = (
-                best_a["banned"] or best_a["user_fact"]
-                or best_a["length"] > 80
-            )
+            hard = best_a["banned"] or best_a["user_fact"]
             if not hard:
                 fixed = repair(best, allow_meow, allow_nuzzle, allow_formula_end, allow_formula_start, focus, card)
                 fixed_a = assess(fixed, card, focus, allow_meow, allow_nuzzle,
@@ -306,10 +318,7 @@ def main() -> None:
             if extra_a["valid"] or extra_a["score"] > best_a["score"]:
                 best, best_a = extra, extra_a
                 if not best_a["valid"]:
-                    hard = (
-                        best_a["banned"] or best_a["user_fact"]
-                        or best_a["length"] > 80
-                    )
+                    hard = best_a["banned"] or best_a["user_fact"]
                     if not hard:
                         fixed = repair(best, allow_meow, allow_nuzzle, allow_formula_end, allow_formula_start, focus, card)
                         fixed_a = assess(fixed, card, focus, allow_meow, allow_nuzzle,
@@ -347,6 +356,7 @@ def main() -> None:
         "possible_user_fact_invention": sum(1 for r in rows if r["assess"]["user_fact"]),
         "fallbacks": fallbacks,
         "repaired": repaired_total,
+        "candidate_rejections": dict(rejections),
         "meow_count": sum(r["reply"].count("喵") for r in rows),
         "nuzzle_count": sum(r["reply"].count("蹭蹭") for r in rows),
         "max_meow_in_one": max(r["reply"].count("喵") for r in rows),
