@@ -17,10 +17,11 @@
 9. `minicpm-v4.7\docs\风格模式与语料扩展-2026-10-21.md` —— 七种 StyleMode
 10. `minicpm-v4.7\docs\语料来源清单-2026-10-21.md` —— 可下载/可仿写来源与许可
 11. `minicpm-v4.7\docs\故事网络与多结局-2026-10-21.md` —— 角色位/故事节点/世界旗标/多结局
-12. `minicpm-v4.7\docs\群聊-PC拟真测试-2026-10-21.md` —— 群聊 PC 测试报告
-13. `minicpm-v4.7\docs\产品方案-v1.0.md` —— 产品定位/路线（历史基线）
-14. `minicpm-v4.7\docs\架构诊断与重构方案-2026-10-18.md` —— 架构不变量/验收清单
-15. `minicpm-v4.7\docs\APK工程方案.md` —— M1–M7 里程碑记录
+12. `minicpm-v4.7\docs\E1-小咪-日常陪伴试点-2026-10-21.md` —— 30 天 LifeCard + 私聊模拟证据
+13. `minicpm-v4.7\docs\群聊-PC拟真测试-2026-10-21.md` —— 群聊 PC 测试报告
+14. `minicpm-v4.7\docs\产品方案-v1.0.md` —— 产品定位/路线（历史基线）
+15. `minicpm-v4.7\docs\架构诊断与重构方案-2026-10-18.md` —— 架构不变量/验收清单
+16. `minicpm-v4.7\docs\APK工程方案.md` —— M1–M7 里程碑记录
 
 ## 构建 / 部署 / 测试
 - 环境：`. minicpm-v4.7\android\env-build.ps1`；另设 `$env:ANDROID_USER_HOME = "D:\MiniProj\CellPhone Helper\android-toolchain\android-user-home"`（沿用同一个 debug 密钥，`adb install -r` 才能覆盖安装）
