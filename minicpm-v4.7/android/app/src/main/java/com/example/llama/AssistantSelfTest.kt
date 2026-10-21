@@ -1210,7 +1210,6 @@ object AssistantSelfTest {
 
             check("关系：至少 10 条、编号存在、无自环/私密人设", PersonaRelations.ALL.size >= 10 && PersonaRelations.problems().isEmpty()) { PersonaRelations.problems().joinToString("；") }
             check("关系：双向查询结果一致", PersonaRelations.between("fuchen", "shenyan") === PersonaRelations.between("shenyan", "fuchen") && PersonaRelations.of("fuchen").any { it.b == "shenyan" })
-            check("预设群：3 个，成员 2–8 人且不含树洞", PersonaRelations.PRESETS.size == 3 && PersonaRelations.PRESETS.all { it.members.size in 2..8 && "listener" !in it.members })
 
             check("新人设：沈砚/胡德贵/陈野都能取到，且有独立头像", listOf("shenyan", "hudegui", "chenye").all { PersonaPacks.of(it) != null && AvatarLooks.ALL.any { a -> a.id == it } })
 

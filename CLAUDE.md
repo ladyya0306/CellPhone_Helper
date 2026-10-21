@@ -10,16 +10,17 @@
 2. `minicpm-v4.7\docs\会话交接-2026-10-18.md` —— 历史追加日志（§1–§28），查细节与踩坑
 3. `minicpm-v4.7\docs\通讯录与群聊朋友圈方案-2026-10-21.md` —— 通讯录方向的原始方案
 4. `minicpm-v4.7\docs\通讯录2.0-计划-2026-10-21.md` —— 已批准的新计划（14 人设 / 小传关系 / 群聊 / 朋友圈 / 编排层，A–D 阶段）
-5. `minicpm-v4.7\docs\群聊-PC拟真测试-2026-10-21.md` —— 群聊 PC 测试报告（机制通过、拟真未过）
-6. `minicpm-v4.7\docs\产品方案-v1.0.md` —— 产品定位、缺陷总表、路线（阶段 A–F）
-7. `minicpm-v4.7\docs\架构诊断与重构方案-2026-10-18.md` —— 根因、架构不变量、验收清单 §3.4
-8. `minicpm-v4.7\docs\APK工程方案.md` —— M1–M7 里程碑记录
+5. `minicpm-v4.7\docs\人设圣经-v2.md` —— 14 人声音 DNA / 动作库 / 小传 / 样例（改 Pack 前先看）
+6. `minicpm-v4.7\docs\群聊-PC拟真测试-2026-10-21.md` —— 群聊 PC 测试报告（机制通过、拟真未过）
+7. `minicpm-v4.7\docs\产品方案-v1.0.md` —— 产品定位、缺陷总表、路线（阶段 A–F）
+8. `minicpm-v4.7\docs\架构诊断与重构方案-2026-10-18.md` —— 根因、架构不变量、验收清单 §3.4
+9. `minicpm-v4.7\docs\APK工程方案.md` —— M1–M7 里程碑记录
 
 ## 构建 / 部署 / 测试
 - 环境：`. minicpm-v4.7\android\env-build.ps1`；另设 `$env:ANDROID_USER_HOME = "D:\MiniProj\CellPhone Helper\android-toolchain\android-user-home"`（沿用同一个 debug 密钥，`adb install -r` 才能覆盖安装）
 - 一键部署：`minicpm-v4.7\scripts\deploy-apk.ps1`（备份手机数据 → assembleDebug → install -r → 启动 → 截图），日志 `run\deploy.log`
 - 一键端到端测试：`minicpm-v4.7\scripts\e2e-test.ps1`（部署后触发调试包内的 `TestHookReceiver`，结果 `run\e2e-result.txt`）
-- 回归语料：`AssistantSelfTest.kt`（纯 Kotlin，**1088 条**）；电脑端 `scripts\selftest-jvm.ps1`，手机上「设置 → 动作与提醒 → 运行自检」
+- 回归语料：`AssistantSelfTest.kt`（纯 Kotlin，**1087 条**）；电脑端 `scripts\selftest-jvm.ps1`，手机上「设置 → 动作与提醒 → 运行自检」
 - 人设文本快照：`scripts\persona-golden.ps1`（旧人设文本不得变化，只允许新增人设带来的新增行）
 - PC 群聊拟真：`python scripts\group-sim.py --all`（先 `dump-prompts.ps1` 导出 14 份真实系统提示；结果 `run\eval\group-sim-*.md`；未过拟真门禁不上手机）
 - adb：`android-toolchain\sdk\platform-tools\adb.exe`

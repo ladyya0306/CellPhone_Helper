@@ -1,10 +1,11 @@
 package com.example.llama
 
 /**
- * 预设人物关系 + 预设群（通讯录 2.0 · A1）。
+ * 预设人物关系（通讯录 2.0 · A1）。
  *
- * 关系是**虚构设定**，只用于：联系人详情页展示、群聊推荐、朋友圈/编排时知道"谁和谁熟"。
+ * 关系是**虚构设定**，只用于：联系人详情页展示、群聊组合推荐、朋友圈/编排时知道"谁和谁熟"。
  * 不映射真人，也不参与聊天提示词的事实部分。
+ * **不预设群**：群由用户自己选 2–3 人创建；这里不提供任何预置群。
  */
 enum class RelationKind { BOSS_SUBORDINATE, COLLEAGUE, RIVAL, FRIEND, CLASSMATE, EX, NEIGHBOR, STRANGER }
 
@@ -15,8 +16,6 @@ data class Relation(
     /** 一句备注，展示给用户；不写隐私 */
     val note: String,
 )
-
-data class GroupPreset(val key: String, val name: String, val members: List<String>)
 
 object PersonaRelations {
 
@@ -37,12 +36,6 @@ object PersonaRelations {
         Relation("hudegui", "chenye", RelationKind.RIVAL, "互相看不上：一个嫌对方油，一个嫌对方愣"),
     )
 
-    val PRESETS: List<GroupPreset> = listOf(
-        GroupPreset("office", "公司旧事", listOf("fuchen", "shenyan", "hudegui", "buddy")),
-        GroupPreset("weekend", "周末老友局", listOf("buddy", "aling", "chenye", "genki")),
-        GroupPreset("tea", "姐姐茶会", listOf("oneesan", "shenze", "tsundere", "kuudere")),
-    )
-
     fun of(id: String): List<Relation> = ALL.filter { it.a == id || it.b == id }
 
     /** 无向查询；BOSS_SUBORDINATE 的 a 是上级、b 是下级 */
@@ -61,12 +54,6 @@ object PersonaRelations {
             if (r.note.isBlank()) out.add("关系缺少备注：${r.a}/${r.b}")
             val key = listOf(r.a, r.b).sorted().joinToString("|") + "|" + r.kind.name
             if (!seen.add(key)) out.add("关系重复：$key")
-        }
-        PRESETS.forEach { p ->
-            if (p.name.isBlank() || p.members.size !in 2..8) out.add("预设群不合格：${p.key}")
-            if (p.members.any { it !in ids }) out.add("预设群包含不存在的人设：${p.key}")
-            if (p.members.any { it in privateIds }) out.add("预设群包含私密人设：${p.key}")
-            if (p.members.size != p.members.toSet().size) out.add("预设群成员重复：${p.key}")
         }
         return out
     }
