@@ -191,6 +191,12 @@ class AvatarView @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
                 }
                 fill.color = 0xFFFFD66B.toInt(); c.drawCircle(76f, 34f, 2.6f, fill)
             }
+            AvatarLook.Feature.HEADBAND -> {
+                // 运动发带：陈野
+                fill.color = look.accent
+                rect.set(20f, 32f, 80f, 38f); c.drawRoundRect(rect, 3f, 3f, fill)
+                path.reset(); path.moveTo(24f, 38f); path.lineTo(18f, 52f); path.lineTo(24f, 50f); path.close(); c.drawPath(path, fill)
+            }
             else -> {}
         }
     }
@@ -220,10 +226,17 @@ class AvatarView @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
         // 眼
         val eye = if (blink && (p.eye == FaceParams.Eye.OPEN || p.eye == FaceParams.Eye.WIDE_SHINE || p.eye == FaceParams.Eye.SIDE)) FaceParams.Eye.CLOSED else p.eye
         for (ex in floatArrayOf(39f, 61f)) drawEye(c, eye, ex + lookDx, 55f + lookDy)
-        // 眼镜（摸鱼搭子）
-        if (look.feature == AvatarLook.Feature.GLASSES_MESSY) {
-            line.color = 0xFF3A3A3A.toInt(); line.strokeWidth = 1.8f
+        // 眼镜（摸鱼搭子 / 沈砚）
+        if (look.feature == AvatarLook.Feature.GLASSES_MESSY || look.feature == AvatarLook.Feature.GOLD_GLASSES) {
+            line.color = if (look.feature == AvatarLook.Feature.GOLD_GLASSES) 0xFFC9A227.toInt() else 0xFF3A3A3A.toInt()
+            line.strokeWidth = if (look.feature == AvatarLook.Feature.GOLD_GLASSES) 1.4f else 1.8f
             c.drawCircle(39f, 55f, 8.6f, line); c.drawCircle(61f, 55f, 8.6f, line); c.drawLine(47.6f, 54f, 52.4f, 54f, line)
+        }
+        // 八字胡（胡德贵）
+        if (look.feature == AvatarLook.Feature.MUSTACHE) {
+            line.color = 0xFF3A3028.toInt(); line.strokeWidth = 2.8f
+            rect.set(41f, 62f, 50f, 69f); c.drawArc(rect, 200f, 140f, false, line)
+            rect.set(50f, 62f, 59f, 69f); c.drawArc(rect, 200f, 140f, false, line)
         }
         // 猫须
         if (look.feature == AvatarLook.Feature.CAT_EARS) {

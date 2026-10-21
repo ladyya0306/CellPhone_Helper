@@ -597,6 +597,7 @@ class AgentLoop(
         if (out.isEmpty()) return out
         out = PersonaPost.fixBreak(out, personaOf())
         out = PersonaRedLines.sanitize(personaOf(), out)
+        out = ToxicityGuard.sanitize(personaOf(), out)
         out = PersonaPost.injectTic(out, personaOf(), settings?.ticStrength ?: 1)
         return out
     }

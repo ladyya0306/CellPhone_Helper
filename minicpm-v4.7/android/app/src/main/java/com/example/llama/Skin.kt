@@ -83,7 +83,7 @@ data class AvatarLook(
     val eyeColor: Int,
     val feature: Feature, // 辨识特征
 ) {
-    enum class Feature { CAT_EARS, LONG_WAVY, TWIN_TAILS, AHOGE, STRAIGHT_BANGS, DOG_EARS, HOOD_CANDLE, GLASSES_MESSY, HEADPHONES, FLOWER_CLIP, SIDE_PART }
+    enum class Feature { CAT_EARS, LONG_WAVY, TWIN_TAILS, AHOGE, STRAIGHT_BANGS, DOG_EARS, HOOD_CANDLE, GLASSES_MESSY, HEADPHONES, FLOWER_CLIP, SIDE_PART, GOLD_GLASSES, MUSTACHE, HEADBAND }
 }
 
 object AvatarLooks {
@@ -99,6 +99,9 @@ object AvatarLooks {
         AvatarLook("aling", 0xFF2F5D62.toInt(), 0xFFDCEAEA.toInt(), 0xFF2B3A3F.toInt(), eyeColor = 0xFF1F2A2E.toInt(), feature = AvatarLook.Feature.HEADPHONES),
         AvatarLook("shenze", 0xFF7A4A66.toInt(), 0xFFF3E4EC.toInt(), 0xFF5A3A4C.toInt(), eyeColor = 0xFF4A2E3E.toInt(), feature = AvatarLook.Feature.FLOWER_CLIP),
         AvatarLook("fuchen", 0xFF3F4652.toInt(), 0xFFE3E5EA.toInt(), 0xFF2F333B.toInt(), eyeColor = 0xFF1E2127.toInt(), feature = AvatarLook.Feature.SIDE_PART),
+        AvatarLook("shenyan", 0xFF6B3A4A.toInt(), 0xFFF0E1E6.toInt(), 0xFF4A2F3A.toInt(), eyeColor = 0xFF2F1F27.toInt(), feature = AvatarLook.Feature.GOLD_GLASSES),
+        AvatarLook("hudegui", 0xFF6E5A2E.toInt(), 0xFFEDE6D5.toInt(), 0xFF3A3028.toInt(), eyeColor = 0xFF2A231C.toInt(), feature = AvatarLook.Feature.MUSTACHE),
+        AvatarLook("chenye", 0xFF356B5A.toInt(), 0xFFDDEBE5.toInt(), 0xFF2F3A36.toInt(), eyeColor = 0xFF1F2A26.toInt(), feature = AvatarLook.Feature.HEADBAND),
     )
     private val DEFAULT = AvatarLook("generic", 0xFF2F6FED.toInt(), 0xFFE5E9F5.toInt(), 0xFF555555.toInt(), eyeColor = 0xFF222222.toInt(), feature = AvatarLook.Feature.STRAIGHT_BANGS)
     fun of(id: String?): AvatarLook = ALL.firstOrNull { it.id == id } ?: DEFAULT

@@ -22,7 +22,12 @@ data class Persona(
     val lowMoodHint: String = "",
     /** 这个人设不许对用户下命令（专注/聊天输出都要过 PersonaRedLines）；默认 false */
     val noCommands: Boolean = false,
+    /** 说话的攻击性档位：胡德贵允许工作 PUA，但所有档位都过 ToxicityGuard 的硬红线 */
+    val hostility: Hostility = Hostility.NONE,
 )
+
+/** 毒舌档位（只是"允许说到哪"，硬红线始终由 [ToxicityGuard] 兜底） */
+enum class Hostility { NONE, WORK_SNARK, WORK_PUA, BLUNT }
 
 object Personas {
 

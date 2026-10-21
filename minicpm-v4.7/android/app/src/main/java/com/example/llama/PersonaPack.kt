@@ -58,7 +58,7 @@ object PersonaPacks {
     /** 所有人设的**原包**（未改名）。新增人设：在这里加一行；要取生效版本用 [of] */
     val ALL: List<PersonaPack> = listOf(
         PACK_CATGIRL, PACK_ONEESAN, PACK_TSUNDERE, PACK_GENKI, PACK_KUUDERE, PACK_PUPPY, PACK_LISTENER, PACK_BUDDY,
-        PACK_ALING, PACK_SHENZE, PACK_FUCHEN,
+        PACK_ALING, PACK_SHENZE, PACK_FUCHEN, PACK_SHENYAN, PACK_HUDEGUI, PACK_CHENYE,
     )
 
     private val BY_ID: Map<String, PersonaPack> = ALL.associateBy { it.persona.id }
