@@ -120,6 +120,7 @@ class AvatarView @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
                 }
             }
             AvatarLook.Feature.HOOD_CANDLE -> { rect.set(12f, 8f, 88f, 104f); c.drawRoundRect(rect, 38f, 44f, fill) }
+            AvatarLook.Feature.SIDE_PART -> { rect.set(16f, 22f, 84f, 92f); c.drawRoundRect(rect, 16f, 16f, fill) }
             else -> {}
         }
     }
@@ -146,6 +147,12 @@ class AvatarView @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
         when (look.feature) {
             AvatarLook.Feature.STRAIGHT_BANGS -> { path.lineTo(76f, 56f); path.lineTo(74f, 40f); path.lineTo(26f, 40f); path.lineTo(24f, 56f) }
             AvatarLook.Feature.GLASSES_MESSY -> { path.lineTo(76f, 46f); path.lineTo(70f, 36f); path.lineTo(62f, 44f); path.lineTo(54f, 32f); path.lineTo(44f, 44f); path.lineTo(36f, 34f); path.lineTo(30f, 46f); path.lineTo(24f, 50f) }
+            AvatarLook.Feature.SIDE_PART -> {
+                path.lineTo(76f, 56f); path.lineTo(74f, 42f)
+                path.quadTo(64f, 28f, 50f, 34f)
+                path.quadTo(34f, 26f, 26f, 50f)
+                path.lineTo(24f, 56f)
+            }
             else -> {
                 path.lineTo(74f, 54f)
                 path.quadTo(70f, 36f, 62f, 40f); path.quadTo(56f, 48f, 50f, 36f); path.quadTo(44f, 48f, 38f, 40f); path.quadTo(30f, 36f, 26f, 54f)
@@ -166,6 +173,23 @@ class AvatarView @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
                 val flick = if (animated) 1f + 0.12f * Math.sin(phase * 2 * Math.PI * 3).toFloat() else 1f
                 fill.color = 0xFFFFD66B.toInt()
                 path.reset(); path.moveTo(50f, 1f); path.quadTo(58f, 10f, 50f, 14f * flick); path.quadTo(42f, 10f, 50f, 1f); c.drawPath(path, fill)
+            }
+            AvatarLook.Feature.HEADPHONES -> {
+                // 耳机：烂梗王的播客道具，耳罩压在两侧
+                line.color = 0xFF1F2A2E.toInt(); line.strokeWidth = 3f
+                rect.set(20f, 30f, 80f, 78f); c.drawArc(rect, 190f, 160f, false, line)
+                fill.color = 0xFF1F2A2E.toInt()
+                rect.set(12f, 54f, 26f, 76f); c.drawRoundRect(rect, 6f, 6f, fill)
+                rect.set(74f, 54f, 88f, 76f); c.drawRoundRect(rect, 6f, 6f, fill)
+            }
+            AvatarLook.Feature.FLOWER_CLIP -> {
+                // 发夹上的小花：深泽的细节点
+                fill.color = 0xFFFF9BB3.toInt()
+                for (i in 0 until 5) {
+                    val a = Math.toRadians((i * 72).toDouble())
+                    c.drawCircle(76f + 4.2f * Math.cos(a).toFloat(), 34f + 4.2f * Math.sin(a).toFloat(), 3.2f, fill)
+                }
+                fill.color = 0xFFFFD66B.toInt(); c.drawCircle(76f, 34f, 2.6f, fill)
             }
             else -> {}
         }

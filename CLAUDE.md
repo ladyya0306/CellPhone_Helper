@@ -8,7 +8,7 @@
 0. `minicpm-v4.7\docs\项目状态-2026-10-21.md` —— **当前事实、证据、技术债（先读这份）**
 1. `minicpm-v4.7\docs\实施计划-2026-10-21.md` —— 阶段、门禁、下一步；动工前先看范围
 2. `minicpm-v4.7\docs\会话交接-2026-10-18.md` —— 历史追加日志（§1–§28），查细节与踩坑
-3. `minicpm-v4.7\docs\通讯录与群聊朋友圈方案-2026-10-21.md` —— 待拍板的新方向
+3. `minicpm-v4.7\docs\通讯录与群聊朋友圈方案-2026-10-21.md` —— 通讯录方向；步骤 1（三个新人设）已完成，其余待拍板
 4. `minicpm-v4.7\docs\产品方案-v1.0.md` —— 产品定位、缺陷总表、路线（阶段 A–F）
 5. `minicpm-v4.7\docs\架构诊断与重构方案-2026-10-18.md` —— 根因、架构不变量、验收清单 §3.4
 6. `minicpm-v4.7\docs\APK工程方案.md` —— M1–M7 里程碑记录
@@ -17,7 +17,7 @@
 - 环境：`. minicpm-v4.7\android\env-build.ps1`；另设 `$env:ANDROID_USER_HOME = "D:\MiniProj\CellPhone Helper\android-toolchain\android-user-home"`（沿用同一个 debug 密钥，`adb install -r` 才能覆盖安装）
 - 一键部署：`minicpm-v4.7\scripts\deploy-apk.ps1`（备份手机数据 → assembleDebug → install -r → 启动 → 截图），日志 `run\deploy.log`
 - 一键端到端测试：`minicpm-v4.7\scripts\e2e-test.ps1`（部署后触发调试包内的 `TestHookReceiver`，结果 `run\e2e-result.txt`）
-- 回归语料：`AssistantSelfTest.kt`（纯 Kotlin，**973 条**）；电脑端 `scripts\selftest-jvm.ps1`，手机上「设置 → 动作与提醒 → 运行自检」
+- 回归语料：`AssistantSelfTest.kt`（纯 Kotlin，**1030 条**）；电脑端 `scripts\selftest-jvm.ps1`，手机上「设置 → 动作与提醒 → 运行自检」
 - 人设文本快照：`scripts\persona-golden.ps1`（旧人设文本不得变化，只允许新增人设带来的新增行）
 - adb：`android-toolchain\sdk\platform-tools\adb.exe`
 - 版本控制：2026-10-21 起仓库根目录有 git 基线；改文件前先看 `git status`，每阶段一个提交

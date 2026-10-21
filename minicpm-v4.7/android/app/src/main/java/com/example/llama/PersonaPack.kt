@@ -58,6 +58,7 @@ object PersonaPacks {
     /** 所有人设的**原包**（未改名）。新增人设：在这里加一行；要取生效版本用 [of] */
     val ALL: List<PersonaPack> = listOf(
         PACK_CATGIRL, PACK_ONEESAN, PACK_TSUNDERE, PACK_GENKI, PACK_KUUDERE, PACK_PUPPY, PACK_LISTENER, PACK_BUDDY,
+        PACK_ALING, PACK_SHENZE, PACK_FUCHEN,
     )
 
     private val BY_ID: Map<String, PersonaPack> = ALL.associateBy { it.persona.id }
@@ -125,6 +126,10 @@ object PersonaPacks {
             FocusLines.templatesOf(f).forEach { (cell, kind, t) ->
                 val why = FocusLineBank.validate(t, kind).filter { !it.startsWith("太短") }
                 if (why.isNotEmpty()) bad("专注台词不合格 [$cell] $t → $why")
+            }
+            // 红线：noCommands 人设的专注台词也不能出现命令式
+            if (p.noCommands) FocusLines.templatesOf(f).forEach { (cell, _, t) ->
+                if (PersonaRedLines.COMMAND.containsMatchIn(t)) bad("专注台词含命令式 [$cell] $t")
             }
         }
         return out

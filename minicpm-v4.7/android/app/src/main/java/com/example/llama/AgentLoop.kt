@@ -60,6 +60,8 @@ class AgentLoop(
     ): Result {
         // 专注模式的安全阀：用户说了痛苦的话，专注台词接下来 1 小时一律温柔
         FocusRuntime.distressedUntilMs = FocusSafety.updateUntil(userText, System.currentTimeMillis(), FocusRuntime.distressedUntilMs)
+        // 人设红线：这一句情绪低落时，阿冷这类人设的系统提示要追加"别讲笑话"
+        val lowMood = FocusSafety.isLowMood(userText)
         lastUserText = userText
         val persona = personaOf()
         val turn = Turn("t-" + UUID.randomUUID().toString().take(8), conversationId, persona)
@@ -156,7 +158,7 @@ class AgentLoop(
 
         // 只有话里确有"要办事"的意思才把工具交给模型；闲聊轮不开放，免得 4B 模型把注入的记忆当成待办自作主张写进去
         val tools = if (IntentRouter.allowTools(userText)) registry.toCodecDefs() else emptyList()
-        val systemPrompt = Personas.promptFor(persona)
+        val systemPrompt = Personas.promptFor(persona, lowMood)
         // 回执只在办事类对话里带进上下文；闲聊轮带着"已设闹钟"的回执，模型会不停地描写调闹钟、编"你昨天说闹钟设错了"
         val history = buildHistory(conversationId, persona.id, withReceipts = tools.isNotEmpty())
         // 会话第一轮（历史窗口是空的：新会话，或隔了 6 小时以上）：把"上次聊天回顾 + 档案卡"当背景给模型，
@@ -589,11 +591,12 @@ class AgentLoop(
         }
     }
 
-    /** 人设后处理：出戏修正 → 口癖频率校准 */
+    /** 人设后处理：出戏修正 → 红线删句 → 口癖频率校准 */
     private fun postProcess(text: String): String {
         var out = ReplyCleaner.clean(text.trim())
         if (out.isEmpty()) return out
         out = PersonaPost.fixBreak(out, personaOf())
+        out = PersonaRedLines.sanitize(personaOf(), out)
         out = PersonaPost.injectTic(out, personaOf(), settings?.ticStrength ?: 1)
         return out
     }

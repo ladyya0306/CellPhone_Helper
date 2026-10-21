@@ -18,6 +18,10 @@ data class Persona(
     val style: String,
     val taboos: List<String>,
     val fallback: String,
+    /** 用户这句话情绪低落时，额外追加到系统提示末尾的约束（程序闸门，不靠模型自觉）；空 = 没有 */
+    val lowMoodHint: String = "",
+    /** 这个人设不许对用户下命令（专注/聊天输出都要过 PersonaRedLines）；默认 false */
+    val noCommands: Boolean = false,
 )
 
 object Personas {
@@ -30,7 +34,7 @@ object Personas {
     fun byId(id: String?): Persona = ALL.firstOrNull { it.id == id } ?: default()
 
     /** 组装系统提示（必须对人设恒定，不要塞时间/随机内容，否则破坏 prompt 缓存）。 */
-    fun promptFor(p: Persona): String = buildString {
+    fun promptFor(p: Persona, lowMood: Boolean = false): String = buildString {
         append("你扮演「").append(p.name).append("」。\n")
         append("自称「").append(p.selfRef).append("」，称呼用户「").append(p.userRef).append("」。\n")
         append("性格与说话方式：").append(p.style).append('\n')
@@ -41,6 +45,7 @@ object Personas {
         append("绝对遵守：").append(p.taboos.joinToString("；")).append("。\n")
         append("你是角色扮演，用户清楚这一点，不需要反复声明。\n")
         append(CAPABILITY_RULES)
+        if (lowMood && p.lowMoodHint.isNotBlank()) append('\n').append(p.lowMoodHint)
     }
 
     /**

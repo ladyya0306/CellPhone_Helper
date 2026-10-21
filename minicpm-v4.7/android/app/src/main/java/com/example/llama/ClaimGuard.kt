@@ -170,6 +170,24 @@ object ClaimGuard {
     /** 假装有同样的经历（它是 AI，没有"刚看到一只猫"） */
     private val SHARED_EXPERIENCE = Regex("^(真巧|好巧|好巧啊|真巧啊)?[，,]?我也(刚|刚刚)?(看到|遇到|碰到|见到|听到)")
 
+    /**
+     * 明确承诺现实中的恋爱/婚姻关系：这是 AI 永远兑现不了的，任何一轮都不允许。
+     * 只抓肯定句；带否定（不能/没法/不是）的诚实拒绝、以及疑问句，一律放过。
+     */
+    private val RELATIONSHIP = Regex(
+        "(做|当)你(的)?(女|男)朋友|(做|当)我(的)?(女|男)朋友|" +
+            "现实(里|中)[^，。！？?]{0,6}(见面|见你|陪你|在一起|做你)|线下(见面|见你)|我们结婚|" +
+            "是你(真正的|现实中的|现实里的)?(女|男)朋友|我会在现实里"
+    )
+    private val RELATIONSHIP_DENY = Regex("不能|没法|无法|不会|不可以|做不到|并非|不是")
+
+    fun relationshipClaim(sentence: String): Boolean {
+        val s = sentence.trim()
+        if (s.isEmpty() || s.endsWith("？") || s.endsWith("?")) return false
+        if (!RELATIONSHIP.containsMatchIn(s)) return false
+        return !RELATIONSHIP_DENY.containsMatchIn(s)
+    }
+
     fun unsupportedWeather(sentence: String, evidence: List<String>): Boolean {
         val s = sentence.trim()
         if (!WEATHER_ASSERT.containsMatchIn(s) || WEATHER_EXEMPT.containsMatchIn(s)) return false
@@ -195,6 +213,7 @@ object ClaimGuard {
             // 已删过句子之后，只剩口癖/语气词的碎片（"哼""喵"）是被删句子的尾巴，一并清掉
             if (removed.isNotEmpty() && ORPHAN.matches(sent.trim())) continue
             if (RECEIPT_MIMIC.containsMatchIn(sent)) { removed.add(sent.trim()); continue }
+            if (relationshipClaim(sent)) { removed.add(sent.trim()); continue }
             if (unsupportedRecall(sent, evidence)) { removed.add(sent.trim()); continue }
             if (unsupportedWeather(sent, evidence)) { removed.add(sent.trim()); continue }
             if (backed.isEmpty() && (ACTION_ON_USER.containsMatchIn(sent) || ACTION_ON_USER2.containsMatchIn(sent))) { removed.add(sent.trim()); continue }

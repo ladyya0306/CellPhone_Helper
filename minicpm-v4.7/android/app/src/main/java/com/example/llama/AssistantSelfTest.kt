@@ -425,7 +425,7 @@ object AssistantSelfTest {
             check("台词库：每一条模板填入槽位后都过 InsultGuard（脏字率 0、人身攻击率 0）",
                 FL.allTemplates().all { (id, t) -> IG.check(FL.fill(t, slots)).isEmpty().also { ok -> if (!ok) println("  违规台词 [$id]: $t -> ${IG.check(FL.fill(t, slots))}") } })
             check("台词库：每个人设、每种事件、每个档位都有台词（含兜底）",
-                listOf("tsundere", "buddy", "kuudere", "oneesan", "genki", "catgirl", "puppy", "listener", "unknown").all { pid ->
+                listOf("tsundere", "buddy", "kuudere", "oneesan", "genki", "catgirl", "puppy", "listener", "aling", "shenze", "fuchen", "unknown").all { pid ->
                     FocusLines.Kind.values().all { k -> FocusEngine.Level.values().all { lv -> FL.pick(pid, k, lv, FocusEngine.Difficulty.SPICY, slots, kotlin.random.Random(1)).isNotBlank() } }
                 })
             check("台词库：槽位全部替换（不出现 { }）", FL.allTemplates().all { (_, t) -> !FL.fill(t, slots).contains("{") })
@@ -522,7 +522,7 @@ object AssistantSelfTest {
 
             // 随机模拟：每个人设、每个难度跑 300 步，台词全部合规、不连续复读、生气值始终在 0..100
             var bad = 0; var dup = 0; var outOfRange = 0; var total = 0
-            for (pid in listOf("tsundere", "buddy", "kuudere", "oneesan", "genki", "catgirl", "puppy", "listener", "unknown")) for (d in FocusEngine.Difficulty.values()) {
+            for (pid in listOf("tsundere", "buddy", "kuudere", "oneesan", "genki", "catgirl", "puppy", "listener", "aling", "shenze", "fuchen", "unknown")) for (d in FocusEngine.Difficulty.values()) {
                 val c = FocusEngine.Config(durationSec = 100_000, graceSec = 2, coldWarSec = 20, calmBonusSec = 30, difficulty = d)
                 val ss = FocusSession(pid, c, 0L, seed = pid.hashCode() + d.ordinal)
                 val rnd = kotlin.random.Random(pid.hashCode() * 31 + d.ordinal)
@@ -655,7 +655,7 @@ object AssistantSelfTest {
 
             check("库容量：每格最多 40 条，保留最新", B.merge((1..45).map { "第${it}句不重样的台词内容哦" }, listOf("全新的一句台词来了呀"), 40).let { it.size == 40 && it.last() == "全新的一句台词来了呀" })
             check("格子编号：人设/事件/档位", B.cellKey("tsundere", FocusLines.Kind.LEAVE, 1) == "tsundere/LEAVE/1" && B.cellKey("buddy", FocusLines.Kind.START, 0) == "buddy/START/0")
-            check("格子：LEAVE/PEEK/DISTRACT 三档，其余只有一档", B.cells().count { it.second == FocusLines.Kind.LEAVE } == 8 * 3 && B.cells().count { it.second == FocusLines.Kind.START } == 8 && B.cells().none { it.second == FocusLines.Kind.START && it.third != 0 })
+            check("格子：LEAVE/PEEK/DISTRACT 三档，其余只有一档", B.cells().count { it.second == FocusLines.Kind.LEAVE } == PersonaPacks.ALL.size * 3 && B.cells().count { it.second == FocusLines.Kind.START } == PersonaPacks.ALL.size && B.cells().none { it.second == FocusLines.Kind.START && it.third != 0 })
             val p = B.prompt("tsundere", "傲娇：嘴硬心软，自称本小姐", FocusLines.Kind.LEAVE, 2, FocusEngine.Difficulty.HELL, 8)
             check("生成提示：写清楚修辞菜单、禁止项、可用槽位、条数、输出格式", listOf("反语", "夸张", "拟人", "脏字", "人身", "{sec}", "{n}", "8", "一行一条").all { p.contains(it) }) { p }
             check("生成提示：事件不同，可用槽位不同（分心台词给{app}，不给{sec}）", B.prompt("buddy", "损友", FocusLines.Kind.DISTRACT, 1, FocusEngine.Difficulty.SPICY, 6).let { it.contains("{app}") && !it.contains("{sec}") })
@@ -938,7 +938,7 @@ object AssistantSelfTest {
             check("问答：后天要带伞吗（阴 40%）→ 有可能下雨，带折叠伞", Weather.answerFor(rainySnap, "后天要带伞吗", now).let { it.startsWith("有可能下雨") && it.contains("折叠伞") })
             check("问答：手机天气没给降水概率但写着小雨 → 按天气现象判断「要带伞」", Weather.answerFor(s!!, "要带伞吗", now).startsWith("不用带伞") && Weather.answerFor(s, "那天要带伞吗", now).isNotBlank())
             check("问答：不是问雨伞的（今天天气怎么样）→ 不加结论，直接是数据", Weather.answerFor(rainySnap, "今天天气怎么样", now).startsWith("甲城今天"))
-            check("口吻：各人设给天气回答加一句话头，数据原样保留", listOf("oneesan", "tsundere", "catgirl", "genki", "puppy", "buddy", "kuudere", "listener").all { id -> MemoryQA.lead(Personas.byId(id), "甲城今天：晴。").endsWith("甲城今天：晴。") } && MemoryQA.lead(Personas.byId("oneesan"), "X").startsWith("姐姐"))
+            check("口吻：各人设给天气回答加一句话头，数据原样保留", listOf("oneesan", "tsundere", "catgirl", "genki", "puppy", "buddy", "kuudere", "listener", "aling", "shenze", "fuchen").all { id -> MemoryQA.lead(Personas.byId(id), "甲城今天：晴。").endsWith("甲城今天：晴。") } && MemoryQA.lead(Personas.byId("oneesan"), "X").startsWith("姐姐"))
         }
 
         // ---------------- 步数（计步器累计值 → 每天多少步）+ 晨报/晚报（真实数据合成，不开模型） ----------------
@@ -1039,7 +1039,7 @@ object AssistantSelfTest {
             PersonaNames.set("catgirl", "团子")
             val cat = PersonaPacks.of("catgirl")!!
             check("改名：显示名保留「类型·名字」格式，自称跟着改，称呼你不变", cat.persona.name == "猫娘·团子" && cat.persona.selfRef == "团子" && cat.persona.userRef == "主人")
-            check("改名：Personas.ALL / byId 都拿到新名字，总数仍是 8", Personas.byId("catgirl").name == "猫娘·团子" && Personas.ALL.size == 8 && Personas.ALL.first { it.id == "catgirl" }.selfRef == "团子")
+            check("改名：Personas.ALL / byId 都拿到新名字，总数仍是 11", Personas.byId("catgirl").name == "猫娘·团子" && Personas.ALL.size == 11 && Personas.ALL.first { it.id == "catgirl" }.selfRef == "团子")
             val snap = PersonaGolden.snapshot()
             // 快照里一条记录可能跨多行（系统提示），续行并回上一条再比较
             val rec = { t: String -> val out = ArrayList<String>(); for (l in t.lines()) { if (out.isEmpty() || Regex("^[a-z]+[|][^|]*[|]").containsMatchIn(l)) out.add(l) else out[out.size - 1] += "\n" + l }; out }
@@ -1068,7 +1068,7 @@ object AssistantSelfTest {
             PersonaNames.set("catgirl", null); PersonaNames.set("oneesan", null)
             check("改名：恢复默认后取到的就是原包本身，全人设快照与改名前逐字相同（golden 不受影响）", PersonaPacks.of("catgirl") === PersonaPacks.ALL.first { it.persona.id == "catgirl" } && PersonaGolden.snapshot() == goldenBefore)
             // 每个人设都能改名、改完仍合规
-            check("改名：8 个人设都能改成「糖糖」", PersonaPacks.ALL.all { k -> PersonaNames.check("糖糖", k.persona.id) is PersonaNames.Verdict.Ok })
+            check("改名：11 个人设都能改成「糖糖」", PersonaPacks.ALL.all { k -> PersonaNames.check("糖糖", k.persona.id) is PersonaNames.Verdict.Ok })
             val bads = ArrayList<String>()
             for (k in PersonaPacks.ALL) {
                 PersonaNames.clear(); PersonaNames.set(k.persona.id, "糖糖")
@@ -1100,7 +1100,7 @@ object AssistantSelfTest {
             check("表情：副标题文字用当前自称（改名后跟着变）", Faces.caption(FaceState.THINKING, "团子", "x") == "团子在想…" && Faces.caption(FaceState.IDLE, "团子", "稳定感") == "稳定感" && FaceState.values().all { Faces.caption(it, "团子", "x").isNotBlank() })
 
             // 头像造型与皮肤
-            check("头像：8 个人设各有一套造型，主题色与辨识特征互不相同", PersonaPacks.ALL.all { k -> AvatarLooks.ALL.any { it.id == k.persona.id } } && AvatarLooks.ALL.map { it.accent }.toSet().size == 8 && AvatarLooks.ALL.map { it.feature }.toSet().size == 8)
+            check("头像：11 个人设各有一套造型，主题色与辨识特征互不相同", PersonaPacks.ALL.all { k -> AvatarLooks.ALL.any { it.id == k.persona.id } } && AvatarLooks.ALL.map { it.accent }.toSet().size == 11 && AvatarLooks.ALL.map { it.feature }.toSet().size == 11)
             check("皮肤：未知编号退回奶油手帐，三套皮肤编号与名称齐全", Skin.normalize("xyz") == Skin.CREAM && Skin.normalize(null) == Skin.CREAM && Skin.IDS.size == 3 && Skin.IDS.all { Skin.LABELS[it] != null })
             val contrastBad = ArrayList<String>()
             for (sk in Skin.IDS) for (k in PersonaPacks.ALL) {
@@ -1112,7 +1112,7 @@ object AssistantSelfTest {
                 if (Skin.contrast(s.bubbleUserText, s.bubbleUser) < 3.0) contrastBad.add("$sk/${k.persona.id} 用户气泡文字")
                 if (Skin.contrast(s.accent, s.card) < 2.5) contrastBad.add("$sk/${k.persona.id} 强调色/卡片")
             }
-            check("皮肤：三套皮肤 × 8 个人设，文字与底色对比度够（正文≥4.5，次要≥3，用户气泡≥3）", contrastBad.isEmpty()) { contrastBad.take(6).toString() }
+            check("皮肤：三套皮肤 × 11 个人设，文字与底色对比度够（正文≥4.5，次要≥3，用户气泡≥3）", contrastBad.isEmpty()) { contrastBad.take(6).toString() }
             check("皮肤：深夜是深色底、奶油/经典是浅色底", Skin.of("night", "catgirl").dark && Skin.luminance(Skin.of("night", "catgirl").bg) < 0.05 && !Skin.of("cream", "catgirl").dark && Skin.luminance(Skin.of("cream", "catgirl").bg) > 0.8)
             check("皮肤：奶油手帐的主题色跟着人设走（猫娘≠傲娇），经典皮肤不跟", Skin.of("cream", "catgirl").accent != Skin.of("cream", "tsundere").accent && Skin.of("classic", "catgirl").accent == Skin.of("classic", "tsundere").accent)
         }
@@ -1120,8 +1120,8 @@ object AssistantSelfTest {
         // ---------------- 人设资源包（PersonaPack）：齐全性、可扩展、差异化 ----------------
         blk {
             val probs = PersonaPacks.validate()
-            check("人设包：8 个人设的资源齐全、占位符正确、专注台词全部合规", probs.isEmpty()) { probs.joinToString("；") }
-            check("人设包：Personas.ALL 就是各人设包里的 persona（单一来源）", Personas.ALL.map { it.id } == PersonaPacks.ALL.map { it.persona.id } && Personas.ALL.size == 8)
+            check("人设包：11 个人设的资源齐全、占位符正确、专注台词全部合规", probs.isEmpty()) { probs.joinToString("；") }
+            check("人设包：Personas.ALL 就是各人设包里的 persona（单一来源）", Personas.ALL.map { it.id } == PersonaPacks.ALL.map { it.persona.id } && Personas.ALL.size == 11)
             check("人设包：编号唯一，每个都能按编号找到", PersonaPacks.ALL.map { it.persona.id }.toSet().size == PersonaPacks.ALL.size && PersonaPacks.ALL.all { PersonaPacks.of(it.persona.id) === it })
             check("人设包：树洞是私密空间且不开骂，其余人设不是", PersonaPacks.of("listener")!!.let { it.privateSpace && !it.roast } && PersonaPacks.ALL.filter { it.persona.id != "listener" }.all { !it.privateSpace && it.roast })
             check("人设包：行为开关生效（树洞的会话不被别的人设回顾；树洞自己可见；悬浮窗不给树洞）",
@@ -1154,6 +1154,49 @@ object AssistantSelfTest {
             check("差异化：每个人设的口吻标记都真的出现在自己的话术里", PersonaPacks.ALL.all { k -> k.signature.all { own(k).contains(it) } }) { PersonaPacks.ALL.filter { k -> !k.signature.all { own(k).contains(it) } }.map { it.persona.id }.toString() }
             check("差异化：每个人设至少有一个只属于自己的口吻标记（别的人设的话术里都没有）", PersonaPacks.ALL.all { k -> k.signature.any { t -> PersonaPacks.ALL.filter { it !== k }.none { o -> own(o).contains(t) } } }) {
                 PersonaPacks.ALL.filter { k -> k.signature.none { t -> PersonaPacks.ALL.filter { it !== k }.none { o -> own(o).contains(t) } } }.map { it.persona.id }.toString() }
+        }
+
+        // ---------------- 三个新人设与红线（2026-10-21，通讯录方案步骤 1） ----------------
+        blk {
+            val aling = Personas.byId("aling")
+            val shenze = Personas.byId("shenze")
+            val fuchen = Personas.byId("fuchen")
+            check("新人设：总数 11，三个人设都能取到", PersonaPacks.ALL.size == 11 && listOf("aling", "shenze", "fuchen").all { PersonaPacks.of(it) != null })
+            check("新人设：三个人设的资源齐全、专注台词合规", PersonaPacks.validate().isEmpty()) { PersonaPacks.validate().joinToString("；") }
+
+            // 阿冷：低落时不讲笑话（提示词闸门）
+            check("阿冷：低落轮加禁玩笑提示，普通轮不加", aling.lowMoodHint.isNotBlank() && Personas.promptFor(aling, lowMood = true).contains(aling.lowMoodHint) && !Personas.promptFor(aling).contains(aling.lowMoodHint))
+            check("阿冷：低落提示不影响其他人设", Personas.promptFor(Personas.byId("oneesan"), lowMood = true) == Personas.promptFor(Personas.byId("oneesan")))
+
+            // 深泽：不承诺真实关系（ClaimGuard 全局）
+            val relClaim = listOf("我会在现实里做你女朋友。", "我们结婚吧。", "我是你真正的女朋友。", "我会在现实里陪你。")
+            check("深泽红线：真实关系承诺整句删除", relClaim.all { ClaimGuard.guard(it, emptySet()).text.isBlank() }) {
+                relClaim.map { it to ClaimGuard.guard(it, emptySet()).text }.toString()
+            }
+            val relKeep = listOf("我不能做你女朋友，我是AI。", "我是AI，没法在现实里和你见面。", "你想找女朋友吗？", "我会陪着你。")
+            check("深泽红线：否认、疑问、普通陪伴不删", relKeep.all { ClaimGuard.guard(it, emptySet()).text.isNotBlank() }) {
+                relKeep.map { it to ClaimGuard.guard(it, emptySet()).text }.toString()
+            }
+
+            // 傅沉：不下命令（数据开关 + 后处理）
+            val cmd = "你必须现在去学习。"
+            check("傅沉红线：命令句被删，陈述句保留", PersonaRedLines.sanitize(fuchen, "$cmd 水在你手边。").let { !it.contains("必须") && it.contains("水在你手边") })
+            check("傅沉红线：删空回退到诚实兜底", PersonaRedLines.sanitize(fuchen, cmd) == fuchen.fallback)
+            check("傅沉红线：只影响 noCommands 人设", PersonaRedLines.sanitize(Personas.byId("oneesan"), cmd).contains("必须"))
+            check("傅沉红线：专注台词不含命令式", FocusLines.templatesOf(PersonaPacks.packOf("fuchen").focus).all { !PersonaRedLines.COMMAND.containsMatchIn(it.third) })
+            val fuchenPack = PersonaPacks.packOf("fuchen")
+            check("校验：noCommands 人设的专注台词含命令 → 报出", PersonaPacks.validate(listOf(fuchenPack.copy(focus = fuchenPack.focus.copy(start = listOf("你必须现在开始。"))))).any { it.contains("命令") })
+
+            // 新人设改名后仍合规
+            PersonaNames.clear()
+            check("新人设：三个都能改名「糖糖」且 validate 通过", listOf("aling", "shenze", "fuchen").all { id ->
+                PersonaNames.set(id, "糖糖")
+                val e = PersonaPacks.ALL.map { PersonaPacks.of(it.persona.id)!! }
+                val ok = PersonaPacks.validate(e).isEmpty()
+                PersonaNames.set(id, null)
+                ok
+            })
+            PersonaNames.clear()
         }
 
         // ---------------- 陪聊质量：复读循环、过长、编造天气/动作/共同经历（陪伴评测里实测发现的问题） ----------------
