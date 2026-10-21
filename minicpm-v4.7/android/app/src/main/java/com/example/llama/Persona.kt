@@ -39,6 +39,7 @@ object Personas {
     fun byId(id: String?): Persona = ALL.firstOrNull { it.id == id } ?: default()
 
     /** 组装系统提示（必须对人设恒定，不要塞时间/随机内容，否则破坏 prompt 缓存）。 */
+    @JvmOverloads
     fun promptFor(p: Persona, lowMood: Boolean = false): String = buildString {
         append("你扮演「").append(p.name).append("」。\n")
         append("自称「").append(p.selfRef).append("」，称呼用户「").append(p.userRef).append("」。\n")
