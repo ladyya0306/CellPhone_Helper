@@ -124,7 +124,7 @@ def build_cards(days: int, seed: int) -> list[dict]:
             # 用自然前缀拉开 180 天，不加括号，避免模型把“（早上）”念出来。
             event = f"{ctx}，{event}"
             exercise = f"{ctx}做了{exercise}"
-            work = f"{ctx}在猫咖{work}"
+            work = f"{ctx}在{work}" if work.startswith("猫咖") else f"{ctx}在猫咖{work}"
             hook = f"{ctx}，{hook}"
         card = {
             "day": i + 1,
