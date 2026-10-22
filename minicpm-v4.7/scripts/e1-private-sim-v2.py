@@ -249,15 +249,26 @@ def repair(reply: str, allow_meow: bool, allow_nuzzle: bool,
     reply = re.sub(r"([。！？!?~～])\1+", r"\1", reply).strip()
 
     # 模型只说了情绪/陪伴、没带生活卡：由程序补上焦点事实，不整句换模板。
-    # 若回复已用近义说法提到焦点，不再追加，避免“今天在猫咖…今天在猫咖…”重复。
+    # 若回复已用近义说法提到焦点，不再追加；长回复先裁成短句，避免“补事实后超 80 字”。
     core = focus.replace("今天", "").replace("早上", "").replace("下午", "").replace("晚上", "").replace("周末", "")
     grams = {core[i:i + 2] for i in range(max(0, len(core) - 1))}
     already = any(g in reply for g in grams if len(g) == 2)
     if not any(f in reply for f in card_facts(card)) and not already:
+        tic = "喵。" if allow_meow else "。"
         if not reply:
-            reply = focus + ("喵。" if allow_meow else "。")
+            reply = focus + tic
         else:
-            candidate = reply.rstrip("。！？!?~～") + "。" + focus + ("喵。" if allow_meow else "。")
+            prefix = reply.rstrip("。！？!?~～")
+            # 先取第一句/前 35 字作为情绪前缀，再拼事实
+            if len(prefix) > 35:
+                cut = max(prefix.rfind("。", 0, 35), prefix.rfind("！", 0, 35),
+                          prefix.rfind("？", 0, 35), prefix.rfind("~", 0, 35))
+                prefix = prefix[: cut + 1] if cut >= 8 else prefix[:35].rstrip("，,、 ")
+            candidate = prefix + "。" + focus + tic
+            if len(candidate) > 80:
+                allow = max(8, 80 - len(focus) - len(tic) - 1)
+                prefix = prefix[:allow].rstrip("，,、 ")
+                candidate = prefix + "。" + focus + tic
             if len(candidate) <= 80:
                 reply = candidate
     return reply
