@@ -36,6 +36,15 @@ def rows_b(path: Path) -> list[dict]:
     return out
 
 
+def rows_h(path: Path) -> list[dict]:
+    d = json.loads(path.read_text(encoding="utf-8"))
+    out = []
+    for day in d["days_data"]:
+        for r in day["rows"]:
+            out.append({"day": day["day"], "kind": r["kind"], "reply": r["reply"]})
+    return out
+
+
 def bigrams(text: str) -> list[str]:
     zh = re.sub(r"[^\u4e00-\u9fff]", "", text)
     grams = [zh[i:i + 2] for i in range(len(zh) - 1)]
@@ -85,21 +94,23 @@ def analyze(rows: list[dict]) -> dict:
 def main() -> None:
     a = analyze(rows_a(L1 / "A-xiaomi-direct-10d.json"))
     b = analyze(rows_b(L1 / "B-xiaomi-beats-10d.json"))
+    h = analyze(rows_h(L1 / "H-xiaomi-hybrid-10d.json"))
     lines = [
-        "# L1 A/B：话题丰富度、主动发问、上下文回指", "",
-        "| 指标 | A 旧架构 | B 新架构 |",
-        "|---|---|---|",
-        f"| 主动发问（含问号） | {a['question_replies']}/40（{a['question_rate']:.0%}） | {b['question_replies']}/40（{b['question_rate']:.0%}） |",
-        f"| 非首轮主动发问 | {a['questions_after_first']} | {b['questions_after_first']} |",
-        f"| 上下文回指（刚才/之前/那…） | {a['context_refs_after_first']} | {b['context_refs_after_first']} |",
-        f"| “好吃吗”回应含主菜 | {a['opinion_with_meal']}/10 | {b['opinion_with_meal']}/10 |",
-        f"| 非当前话题的新事实 | {a['new_topic_replies']} | {b['new_topic_replies']} |",
-        f"| 不同 LifeCard 事实数 | {a['distinct_card_facts']} | {b['distinct_card_facts']} |",
-        f"| 二元组 TTR（越高越多样） | {a['bigram_ttr']} | {b['bigram_ttr']} |",
-        f"| 平均字数 | {a['avg_chars']} | {b['avg_chars']} |",
+        "# L1 A/B/H：话题丰富度、主动发问、上下文回指", "",
+        "| 指标 | A 旧架构 | B-old 单节拍 | H 混合 |",
+        "|---|---|---|---|",
+        f"| 主动发问（含问号） | {a['question_replies']}/40（{a['question_rate']:.0%}） | {b['question_replies']}/40（{b['question_rate']:.0%}） | {h['question_replies']}/40（{h['question_rate']:.0%}） |",
+        f"| 非首轮主动发问 | {a['questions_after_first']} | {b['questions_after_first']} | {h['questions_after_first']} |",
+        f"| 上下文回指（刚才/之前/那…） | {a['context_refs_after_first']} | {b['context_refs_after_first']} | {h['context_refs_after_first']} |",
+        f"| “好吃吗”回应含主菜 | {a['opinion_with_meal']}/10 | {b['opinion_with_meal']}/10 | {h['opinion_with_meal']}/10 |",
+        f"| 非当前话题的新事实 | {a['new_topic_replies']} | {b['new_topic_replies']} | {h['new_topic_replies']} |",
+        f"| 不同 LifeCard 事实数 | {a['distinct_card_facts']} | {b['distinct_card_facts']} | {h['distinct_card_facts']} |",
+        f"| 二元组 TTR（越高越多样） | {a['bigram_ttr']} | {b['bigram_ttr']} | {h['bigram_ttr']} |",
+        f"| 平均字数 | {a['avg_chars']} | {b['avg_chars']} | {h['avg_chars']} |",
         "",
         f"- A 高频二元组：{a['top_bigrams']}",
         f"- B 高频二元组：{b['top_bigrams']}",
+        f"- H 高频二元组：{h['top_bigrams']}",
     ]
     (L1 / "analysis.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
