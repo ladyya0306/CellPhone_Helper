@@ -35,8 +35,13 @@ LENS = (
     "小咪：5–18 字为主，身体先反应（耳朵/尾巴/纸箱），黏人但不刷喵；"
     "不知道的不编；不是自己的道具不提。"
 )
-BAD = re.compile(r"(和|跟)(店长|朋友|同事|小满|阿壹|客人|主人)[^。！？!?]{0,8}(吃|一起)")
+BAD = re.compile(r"(和|跟)(店长|朋友|同事|小满|阿壹|客人|主人|猫|小猫|新猫)[^。！？!?]{0,8}(吃|一起)")
 USER_BAD = re.compile(r"(主人|你)(说|觉得|最喜欢|已经|藏|买了|今天也|想让我)")
+QUESTION_HINT = {
+    "meal": ["你今天吃了什么？", "你那边吃了什么？", "你今天有好好吃饭吗？", "你今天想吃什么？"],
+    "work": ["你今天忙不忙？", "你今天累不累？", "你那边忙吗？", "今天工作顺利吗？"],
+}
+BRIDGES = ["刚才说到吃饭，", "刚才你问吃饭，", "刚才聊到吃饭，", "刚才说着说着，", "刚才那顿饭，", "刚才你问我，"]
 
 
 def trim(text: str, limit: int = 45) -> str:
@@ -47,19 +52,21 @@ def trim(text: str, limit: int = 45) -> str:
     return text[: cut + 1] if cut >= 20 else text[:limit].rstrip("，,、 ") + "。"
 
 
-def system_for(base: str, card: dict, kind: str, state: dict) -> str:
+def system_for(base: str, card: dict, kind: str, state: dict, hint: str = "") -> str:
     prev_user = state["prev_user"] or "（无）"
     prev_reply = state["prev_reply"] or "（无）"
     bridge = "【必须】本轮先用一句“刚才你说…”承接上一轮用户，再回答/扩展。" if kind == "companion" else ""
+    hint_line = f"【追问参考】{hint}（不要照抄上一轮问句）\n" if hint else ""
+    must_ask = "【必须】本轮结尾加一个相关追问。\n" if kind in ("meal", "work") else ""
     return base + (
         "\n\n【内容基线】下面这张 LifeCard 是今天的真实生活事实；可以自由组织，不要编卡外。\n"
         "【多轮】记住上一轮；如果自然，带一句“刚才你说…”或承接上一轮，但不要每轮都硬带。\n"
         f"【当前节拍】{kind}：{POLICY[kind]}。\n"
         f"【透镜】{LENS}\n"
         f"【状态】话题栈={state['topic_stack']}；未闭合={state['open_loops']}；上一轮用户={prev_user}；上一轮我={prev_reply}\n"
-        + bridge +
+        + bridge + hint_line + must_ask +
         "【规则】先回答用户当前问题；2 句、≤45 字；只在“吃饭/工作”轮追问，其他轮不提问；"
-        "每轮最多 1 个动作、最多 1 个喵；整段最多 2 个喵；"
+        "每轮最多 1 个动作、最多 1 个喵；整段最多 2 个喵；只扩展 1 个相关事实；"
         "卡里没写和谁就只说“自己/没特别的人”；不替用户说“你说过/你最喜欢”。\n"
         "【今日生活卡】" + sim.life_text(card)
     )
@@ -85,20 +92,24 @@ def assess(reply: str, card: dict, kind: str, state: dict, seen: set[str]) -> di
     text = trim(reply)
     bad = bool(BAD.search(text)) or bool(USER_BAD.search(text))
     grounded = any(str(f) in text for f in sim.card_facts(card))
+    fact_count = sum(1 for f in sim.card_facts(card) if str(f) in text)
     need = kind in ("meal", "work")
     meow = text.count("喵")
     nuzzle = text.count("蹭蹭")
     question = bool(re.search(r"[?？]", text))
-    # 只允许吃饭/工作轮追问；其他轮问了就是不合格
+    qnorm = re.sub(r"\s+", "", text[text.find("？") + 1:]) if "？" in text else ""
+    # 只允许吃饭/工作轮追问；其他轮问了就是不合格；不连续问同一句
     question_bad = question and kind not in ("meal", "work")
+    question_repeat = question and bool(qnorm) and qnorm == state.get("last_question", "")
     meow_allowed = max(0, 2 - state["meow"])
     norm = re.sub(r"\s+", "", text)
-    valid = (not bad and not question_bad and len(text) <= 45
-             and meow <= min(1, meow_allowed) and nuzzle <= 1
+    valid = (not bad and not question_bad and not question_repeat and len(text) <= 45
+             and meow <= min(1, meow_allowed) and nuzzle <= 1 and fact_count <= 2
              and (grounded or not need) and norm not in seen)
     return {"valid": valid, "reply": text, "bad": bad, "grounded": grounded,
             "meow": meow, "nuzzle": nuzzle, "len": len(text),
-            "question": question, "question_bad": question_bad}
+            "question": question, "question_bad": question_bad,
+            "question_repeat": question_repeat, "fact_count": fact_count}
 
 
 def main() -> None:
@@ -106,12 +117,14 @@ def main() -> None:
     days = []
     seen: set[str] = set()
     for card in CARDS:
-        state = {"topic_stack": [], "open_loops": [], "prev_user": "", "prev_reply": "", "meow": 0}
+        state = {"topic_stack": [], "open_loops": [], "prev_user": "", "prev_reply": "",
+                 "meow": 0, "last_question": ""}
         messages = []
         rows = []
         for user, kind in TURNS:
             state["topic_stack"].append(kind)
-            system = system_for(base, card, kind, state)
+            hint = QUESTION_HINT.get(kind, [""])[(card["day"] - 1) % len(QUESTION_HINT.get(kind, [""]))]
+            system = system_for(base, card, kind, state, hint)
             messages.append({"role": "user", "content": user})
             cands = [chat(system, messages, 0.7) for _ in range(2)]
             assessed = [assess(c, card, kind, state, seen) for c in cands]
@@ -130,11 +143,19 @@ def main() -> None:
                 else:
                     fallback = focus + f"。今天{card['small_event']}。"
                 best = assess(fallback, card, kind, state, seen)
+            # companion 轮强制一个话题回指；已带回指就不加
+            if kind == "companion" and not re.search(r"刚才|之前|你说|那", best["reply"]):
+                bridged = trim(BRIDGES[(card["day"] - 1) % len(BRIDGES)] + best["reply"])
+                bridged_a = assess(bridged, card, kind, state, seen)
+                if bridged_a["valid"]:
+                    best = bridged_a
             messages.append({"role": "assistant", "content": best["reply"]})
             seen.add(re.sub(r"\s+", "", best["reply"]))
             state["prev_user"] = user
             state["prev_reply"] = best["reply"]
             state["meow"] += best["meow"]
+            if best["question"]:
+                state["last_question"] = best["reply"]
             rows.append({"kind": kind, "user": user, "reply": best["reply"], **best})
         days.append({"day": card["day"], "rows": rows})
         print(f"Day {card['day']}")
