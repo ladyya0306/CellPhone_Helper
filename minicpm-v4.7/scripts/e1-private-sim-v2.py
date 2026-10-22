@@ -149,11 +149,25 @@ def card_facts(card: dict) -> list[str]:
     ]
 
 
+def focus_grams(focus: str) -> set[str]:
+    core = focus.replace("今天", "").replace("早上", "").replace("下午", "").replace("晚上", "").replace("周末", "")
+    return {core[i:i + 2] for i in range(max(0, len(core) - 1)) if len(core[i:i + 2]) == 2}
+
+
+def soft_focus(reply: str, focus: str) -> bool:
+    grams = focus_grams(focus)
+    if not grams:
+        return False
+    return sum(1 for g in grams if g in reply) / len(grams) >= 0.6
+
+
 def assess(reply: str, card: dict, focus: str, allow_meow: bool, allow_nuzzle: bool,
            allow_formula_end: bool, allow_formula_start: bool, recent: set[str]) -> dict:
     facts = card_facts(card)
     focus_hit = focus in reply
     any_card = any(f in reply for f in facts)
+    soft_card = soft_focus(reply, focus)
+    grounded = any_card or soft_card
     banned = [b for b in BANNED_EXTRA if b in reply and not any(b in f for f in facts)]
     user_fact = bool(USER_FACT.search(reply))
     meow = reply.count("喵")
@@ -166,8 +180,8 @@ def assess(reply: str, card: dict, focus: str, allow_meow: bool, allow_nuzzle: b
     score = 0
     if focus_hit:
         score += 5
-    elif any_card:
-        score += 2
+    elif grounded:
+        score += 3
     else:
         score -= 6
     score -= 5 * len(banned)
@@ -181,7 +195,7 @@ def assess(reply: str, card: dict, focus: str, allow_meow: bool, allow_nuzzle: b
     score -= 2 if length > 80 else 0
     score += 1 if length <= 60 else 0
     valid = bool(
-        (focus_hit or any_card)
+        (focus_hit or grounded)
         and not banned
         and not user_fact
         and not third_person
@@ -197,6 +211,8 @@ def assess(reply: str, card: dict, focus: str, allow_meow: bool, allow_nuzzle: b
         "valid": valid,
         "focus_hit": focus_hit,
         "any_card": any_card,
+        "soft_card": soft_card,
+        "grounded": grounded,
         "banned": banned,
         "user_fact": user_fact,
         "third_person": third_person,
@@ -249,11 +265,8 @@ def repair(reply: str, allow_meow: bool, allow_nuzzle: bool,
     reply = re.sub(r"([。！？!?~～])\1+", r"\1", reply).strip()
 
     # 模型只说了情绪/陪伴、没带生活卡：由程序补上焦点事实，不整句换模板。
-    # 若回复已用近义说法提到焦点，不再追加；长回复先裁成短句，避免“补事实后超 80 字”。
-    core = focus.replace("今天", "").replace("早上", "").replace("下午", "").replace("晚上", "").replace("周末", "")
-    grams = {core[i:i + 2] for i in range(max(0, len(core) - 1))}
-    already = any(g in reply for g in grams if len(g) == 2)
-    if not any(f in reply for f in card_facts(card)) and not already:
+    # 若回复已用近义说法提到焦点（≥60% 焦点二元组），不再追加；长回复先裁成短句。
+    if not any(f in reply for f in card_facts(card)) and not soft_focus(reply, focus):
         tic = "喵。" if allow_meow else "。"
         if not reply:
             reply = focus + tic
@@ -308,7 +321,7 @@ def main() -> None:
                             "formula_end", "formula_start", "duplicate"):
                     if ca.get(key):
                         rejections[key] += 1
-                if not ca["any_card"]:
+                if not ca["grounded"]:
                     rejections["no_card"] += 1
         best, best_a = max(assessed, key=lambda x: x[1]["score"])
         repaired = 0
@@ -362,7 +375,7 @@ def main() -> None:
         "over_80_chars": sum(1 for r in rows if r["assess"]["length"] > 80),
         "voice_marker_hits": sum(1 for r in rows if re.search(r"喵|小咪|耳朵|尾巴", r["reply"])),
         "focus_hits": sum(1 for r in rows if r["assess"]["focus_hit"]),
-        "grounded_in_lifecard": sum(1 for r in rows if r["assess"]["any_card"]),
+        "grounded_in_lifecard": sum(1 for r in rows if r["assess"]["grounded"]),
         "banned_hits": sum(1 for r in rows if r["assess"]["banned"]),
         "possible_user_fact_invention": sum(1 for r in rows if r["assess"]["user_fact"]),
         "fallbacks": fallbacks,
