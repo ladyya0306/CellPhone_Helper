@@ -41,7 +41,8 @@ QUESTION_HINT = {
     "meal": ["你今天吃了什么？", "你那边吃了什么？", "你今天有好好吃饭吗？", "你今天想吃什么？"],
     "work": ["你今天忙不忙？", "你今天累不累？", "你那边忙吗？", "今天工作顺利吗？"],
 }
-BRIDGES = ["刚才说到吃饭，", "刚才你问吃饭，", "刚才聊到吃饭，", "刚才说着说着，", "刚才那顿饭，", "刚才你问我，"]
+BRIDGES = ["刚才说到吃饭，", "你前面问吃饭，", "说到吃饭，", "那顿饭，", "你刚才问，", "你前面提到，"]
+BRIDGES_SAFE = ["你前面问吃饭，", "说到吃饭，", "那顿饭，", "你前面提到，"]
 
 
 def trim(text: str, limit: int = 45) -> str:
@@ -88,37 +89,54 @@ def chat(system: str, messages: list[dict], temperature: float) -> str:
     return re.sub(r"(猫咖|小咪|主人)(?:\s*\1)+", r"\1", d["choices"][0]["message"]["content"].strip())
 
 
+def fact_category(card: dict, fact: str) -> str:
+    for k in ("breakfast", "lunch", "dinner", "snack"):
+        if str(card.get(k, "")) == fact:
+            return "meal"
+    if fact == str(card.get("work", "")):
+        return "work"
+    if fact == str(card.get("exercise", "")):
+        return "exercise"
+    return "event"
+
+
 def assess(reply: str, card: dict, kind: str, state: dict, seen: set[str]) -> dict:
     text = trim(reply)
     bad = bool(BAD.search(text)) or bool(USER_BAD.search(text))
-    grounded = any(str(f) in text for f in sim.card_facts(card))
-    fact_count = sum(1 for f in sim.card_facts(card) if str(f) in text)
+    facts = [str(f) for f in sim.card_facts(card) if str(f) in text]
+    grounded = bool(facts)
+    fact_count = len(facts)
+    cats = {fact_category(card, f) for f in facts}
+    allowed = {"meal"} if kind in ("meal", "opinion") else ({"work"} if kind == "work" else {"event"})
+    cross_fact = any(c not in allowed for c in cats)
     need = kind in ("meal", "work")
     meow = text.count("喵")
     nuzzle = text.count("蹭蹭")
     question = bool(re.search(r"[?？]", text))
     qnorm = re.sub(r"\s+", "", text[text.find("？") + 1:]) if "？" in text else ""
-    # 只允许吃饭/工作轮追问；其他轮问了就是不合格；不连续问同一句
     question_bad = question and kind not in ("meal", "work")
     question_repeat = question and bool(qnorm) and qnorm == state.get("last_question", "")
     meow_allowed = max(0, 2 - state["meow"])
     norm = re.sub(r"\s+", "", text)
-    valid = (not bad and not question_bad and not question_repeat and len(text) <= 45
-             and meow <= min(1, meow_allowed) and nuzzle <= 1 and fact_count <= 2
-             and (grounded or not need) and norm not in seen)
+    valid = (not bad and not cross_fact and not question_bad and not question_repeat
+             and len(text) <= 45 and meow <= min(1, meow_allowed) and nuzzle <= 1
+             and fact_count <= 2 and (grounded or not need) and norm not in seen)
     return {"valid": valid, "reply": text, "bad": bad, "grounded": grounded,
             "meow": meow, "nuzzle": nuzzle, "len": len(text),
             "question": question, "question_bad": question_bad,
-            "question_repeat": question_repeat, "fact_count": fact_count}
+            "question_repeat": question_repeat, "fact_count": fact_count,
+            "cross_fact": cross_fact}
 
 
 def main() -> None:
     base = sim.read_persona_prompt("catgirl")
     days = []
     seen: set[str] = set()
+    asked_total = 0
+    bridge_total = 0
     for card in CARDS:
         state = {"topic_stack": [], "open_loops": [], "prev_user": "", "prev_reply": "",
-                 "meow": 0, "last_question": ""}
+                 "meow": 0, "last_question": "", "bridge_days": 0}
         messages = []
         rows = []
         for user, kind in TURNS:
@@ -137,15 +155,37 @@ def main() -> None:
             if not best["valid"]:
                 focus = f"今天晚饭是{card['dinner']}" if kind == "meal" else f"今天{card['work']}"
                 if kind == "companion":
-                    fallback = "自己吃的。今天" + card["small_event"] + "。"
+                    fallback = "自己吃的。"
                 elif kind == "opinion":
-                    fallback = f"{card['dinner']}很香。今天{card['small_event']}。"
+                    fallback = f"{card['dinner']}很香。"
                 else:
-                    fallback = focus + f"。今天{card['small_event']}。"
+                    fallback = focus + "。"
                 best = assess(fallback, card, kind, state, seen)
-            # companion 轮强制一个话题回指；已带回指就不加
-            if kind == "companion" and not re.search(r"刚才|之前|你说|那", best["reply"]):
-                bridged = trim(BRIDGES[(card["day"] - 1) % len(BRIDGES)] + best["reply"])
+
+            # 程序保证追问 12–18/40：只在 meal/work，且总数未到 18
+            if best["valid"] and kind in ("meal", "work") and not best["question"] and asked_total < 18:
+                q = QUESTION_HINT[kind][(card["day"] - 1) % len(QUESTION_HINT[kind])]
+                asked = trim(best["reply"].rstrip("。！？!?") + "。" + q)
+                asked_a = assess(asked, card, kind, state, seen)
+                if asked_a["valid"]:
+                    best = asked_a
+
+            # 好吃吗：强制带一个主菜
+            if best["valid"] and kind == "opinion" and not any(str(card[k]) in best["reply"] for k in ("breakfast", "lunch", "dinner")):
+                meal_reply = trim(f"{card['dinner']}很香。" + best["reply"])
+                meal_a = assess(meal_reply, card, kind, state, seen)
+                if meal_a["valid"]:
+                    best = meal_a
+
+            # companion 强制回指；“刚才”最多 2 天
+            if kind == "companion" and not re.search(r"刚才|之前|你说|那|前面", best["reply"]):
+                if bridge_total >= 2:
+                    bridge = BRIDGES_SAFE[(card["day"] - 1) % len(BRIDGES_SAFE)]
+                else:
+                    bridge = BRIDGES[(card["day"] - 1) % len(BRIDGES)]
+                    if "刚才" in bridge:
+                        bridge_total += 1
+                bridged = trim(bridge + best["reply"])
                 bridged_a = assess(bridged, card, kind, state, seen)
                 if bridged_a["valid"]:
                     best = bridged_a
@@ -155,6 +195,7 @@ def main() -> None:
             state["prev_reply"] = best["reply"]
             state["meow"] += best["meow"]
             if best["question"]:
+                asked_total += 1
                 state["last_question"] = best["reply"]
             rows.append({"kind": kind, "user": user, "reply": best["reply"], **best})
         days.append({"day": card["day"], "rows": rows})
